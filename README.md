@@ -5,10 +5,10 @@
 
 # Authors
 
-Group number: (todo, add the group number here)
+Group number: 7
 
-- (todo, add the email of the first group member)
-- (todo, add the email of the second group member)
+- maria.aran01@estudiant.upf.edu
+- livia.fernandez01@estudiant.upf.edu
 - (todo, add the email of the third group member)
 
 # Plagiarism Disclaimer
