@@ -1,8 +1,5 @@
 ![Unit Tests](https://github.com/miquelvir/edaii-2025/actions/workflows/unit-tests.yml/badge.svg)
 
-> [!NOTE]  
-> Remember to change the link above to match your GitHub username and repository name. Then, remove this comment.
-
 # Authors
 
 Group number: 7
