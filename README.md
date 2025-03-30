@@ -6,7 +6,7 @@ Group number: 7
 
 - maria.aran01@estudiant.upf.edu
 - livia.fernandez01@estudiant.upf.edu
-- (todo, add the email of the third group member)
+- marc.cortinat01@estudiant.upf.edu
 
 # Plagiarism Disclaimer
 - You **MUST NOT** look at anyone else's solutions, including previous year students and external tutors.
