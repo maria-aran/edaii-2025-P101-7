@@ -1,9 +1,13 @@
-struct Document{
-    int id;
-    char title[100];
-    char body[500];
-};
+#include <stdio.h>
 
-struct LinkList{
-    int documentID;
-};
+typedef struct{
+    int id;                 
+    struct Link* next;      
+} Link;
+
+typedef struct{
+    int id;                 
+    char* title;            
+    char* body;             
+    Link* links;            
+} Document;
