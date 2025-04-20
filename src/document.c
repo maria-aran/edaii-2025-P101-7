@@ -36,7 +36,7 @@ Document *document_desserialize(char *path) {
     }
     buffer[bufferIdx++]='\0';
     document->title=malloc(bufferIdx);
-    strcpy(document->title,buffer)
+    strcpy(document->title,buffer);
 
     // parse body
     char linkBuffer[64];
