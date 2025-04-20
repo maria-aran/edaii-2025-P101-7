@@ -19,7 +19,13 @@ Document *document_desserialize(char *path) {
     document->id = atoi(buffer);
 
     // parse title
-    // TODO
+    bufferIdx=0;
+    while ((ch=fgetc(f))!='\n'){
+        buffer[bufferIdx++]=ch;
+    }
+    buffer[bufferIdx++]='\0';
+    document->title=malloc(bufferIdx);
+    strcpy(document->title,buffer)
 
     // parse body
     char linkBuffer[64];
