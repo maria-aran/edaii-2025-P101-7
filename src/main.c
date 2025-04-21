@@ -1,63 +1,40 @@
-#include "sample_lib.h"
-#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include "document.h"
-#include "document.c"
-
-void createaleak() {
-  char *foo = malloc(20 * sizeof(char));
-  printf("Allocated leaking string: %s", foo);
-}
-
+#include "dataset.h"
 
 int main() {
-    // Path to a specific file (fixed to point to a file, not a directory)
-    char *path = "datasets/wikipedia12/2.txt";
+    Document *docs = LoadDocumentsFromFolder("datasets/wikipedia12");
 
-    // Call document_desserialize
-    Document *doc = document_desserialize(path);
-    if (doc == NULL) {
-        printf("Failed to deserialize document from %s\n", path);
-        return 1; // Changed to return 1 to indicate error
+    if (!docs) {
+        printf("No documents found.\n");
+        return 1;
     }
 
-    // Print Document fields
-    printf("Document ID: %d\n", doc->id);
-    printf("Document Title: %s\n", doc->title);
-    printf("Document Body: %s\n", doc->body);
+    printf("Documents loaded:\n");
+    PrintDocumentList(docs);
 
-    // Print Links
-    printf("Document Links: ");
-    Link *current = doc->links->next; // Skip head node (assuming LinksInit creates a head node)
-    if (current == NULL) {
-        printf("(none)\n");
+    int choice;
+    printf("Enter document index to view: ");
+    scanf("%d", &choice);
+
+    Document *selected = docs;
+    for (int i = 0; i < choice && selected != NULL; i++) {
+        selected = selected->next;
+    }
+
+    if (selected) {
+        PrintDocument(selected);
     } else {
-        while (current != NULL) {
-            printf("%d", current->id);
-            if (current->next != NULL) {
-                printf(", ");
-            }
-            current = current->next;
-        }
-        printf("\n");
+        printf("Invalid selection.\n");
     }
 
-    // Free allocated memory
-    free(doc->title);
-    free(doc->body);
-    Link *temp;
-    current = doc->links;
-    while (current != NULL) {
-        temp = current;
-        current = current->next;
-        free(temp);
-    }
-    free(doc);
+    FreeDocumentList(docs);
 
     // Uncomment to test memory leaks
     // createaleak();
 
     return 0;
+
 }
+
