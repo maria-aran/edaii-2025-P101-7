@@ -1,4 +1,3 @@
-#include "sample_lib_test.c"
 #include "utils.h"
 #include <assert.h>
 #include <stdio.h>
