@@ -4,11 +4,12 @@
 
 Link* LinksInit() {
     Link *head = (Link *)malloc(sizeof(Link));
-    head->id = -1;  // Dummy head node
+    head->id = -1;  // Dummy head node (with invalid id)
     head->next = NULL;
     return head;
 }
 
+// Frees all links from memory
 void FreeLinks(Link *head) {
     Link *current = head;
     while (current != NULL) {
@@ -18,6 +19,7 @@ void FreeLinks(Link *head) {
     }
 }
 
+// Prints the list of link IDs
 void PrintLinks(Link *head) {
     Link *current = head->next;
     if (!current) {

@@ -3,7 +3,7 @@
 
 #include "links.h"
 
-typedef struct{
+typedef struct Document {
     int id;
     char *title;
     char *body;

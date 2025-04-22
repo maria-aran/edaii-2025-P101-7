@@ -6,30 +6,34 @@
 #include "document.h"
 #include "links.h"
 
+// Deserialize a document from a file path and return a Document struct
 Document *document_desserialize(char *path) {
-    FILE *f = fopen(path, "r");
-    if (!f) return NULL;
+    FILE *f = fopen(path, "r"); //Open the document file in "read" mode
+    if (!f) return NULL;    //Checks that the document exists   
 
-    Document *document = malloc(sizeof(Document));
+    Document *document = malloc(sizeof(Document)); // Allocate memory for the document
     char buffer[262144];
     int bufferIdx = 0;
     char ch;
 
-    // ID
+    //The following lines will read: 
+
+    // the ID (from the first line)
     while ((ch = fgetc(f)) != '\n') buffer[bufferIdx++] = ch;
     buffer[bufferIdx] = '\0';
     document->id = atoi(buffer);
 
-    // Title
+    // the title (from the second line)
     bufferIdx = 0;
     while ((ch = fgetc(f)) != '\n') buffer[bufferIdx++] = ch;
     buffer[bufferIdx] = '\0';
     document->title = strdup(buffer);
 
-    // Body and Links
+    // Initialize the links list
     document->links = LinksInit();
     Link *links = document->links;
-    char linkBuffer[64];
+
+    char linkBuffer[64];    
     int linkBufferIdx = 0;
     bool parsingLink = false;
     bufferIdx = 0;
@@ -61,6 +65,7 @@ Document *document_desserialize(char *path) {
     return document;
 }
 
+// Creates a new Document struct with provided values
 Document* CreateDocument(int id, const char* title, const char* body) {
     Document* doc = malloc(sizeof(Document));
     doc->id = id;
@@ -71,6 +76,7 @@ Document* CreateDocument(int id, const char* title, const char* body) {
     return doc;
 }
 
+// Frees all memory used by a single Document
 void FreeDocument(Document *doc) {
     if (!doc) return;
     free(doc->title);
@@ -79,6 +85,7 @@ void FreeDocument(Document *doc) {
     free(doc);
 }
 
+// Prints the full contents of a Document
 void PrintDocument(Document *doc) {
     printf("Document ID: %d\n", doc->id);
     printf("Title: %s\n", doc->title);
