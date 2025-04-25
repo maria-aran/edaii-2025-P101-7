@@ -5,7 +5,7 @@
 
 int main() {
     // Load all documents from the dataset folder
-    Document *docs = LoadDocumentsFromFolder("datasets/wikipedia12");
+    Document *docs = LoadDocumentsFromFolder("datasets/wikipedia270");
 
     if (!docs) {
         printf("No documents found.\n");

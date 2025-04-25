@@ -6,8 +6,10 @@
 #include "document.h"
 #include "links.h"
 
+
 // Deserialize a document from a file path and return a Document struct
 Document *document_desserialize(char *path) {
+    
     FILE *f = fopen(path, "r"); //Open the document file in "read" mode
     if (!f) return NULL;    //Checks that the document exists   
 
@@ -32,7 +34,7 @@ Document *document_desserialize(char *path) {
     // Initialize the links list
     document->links = LinksInit();
     Link *links = document->links;
-
+    //include buffersize
     char linkBuffer[64];    
     int linkBufferIdx = 0;
     bool parsingLink = false;
