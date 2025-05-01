@@ -3,17 +3,17 @@
 
 #include "links.h"
 
-//Structure of Document:
+// Structure of Document:
 typedef struct Document {
-    int id;
-    char *title;
-    float revelance;
-    char *body;
-    Link *links;
-    struct Document *next;
+  int id;
+  char *title;
+  float revelance;
+  char *body;
+  Link *links;
+  struct Document *next;
 } Document;
 
-//functions for documents:
+// functions for documents:
 Document *document_desserialize(char *path);
 Document *CreateDocument(int id, const char *title, const char *body);
 void FreeDocument(Document *doc);

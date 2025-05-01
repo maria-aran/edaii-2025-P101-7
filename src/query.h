@@ -2,8 +2,8 @@
 #define QUERY_H
 
 typedef struct Query {
-    char *keyword;
-    struct Query *next;
+  char *keyword;
+  struct Query *next;
 } Query;
 
 // Create an empty query list (dummy head)
