@@ -11,17 +11,6 @@ typedef struct Document {
   char *body;
   Link *links;
   struct Document *next;
-=======
-=======
-//Structure of Document:
-typedef struct Document{
-    int id;
-    char *title;
-    float revelance;
-    char *body;
-    Link *links;
-    struct Document *next;
->>>>>>> Stashed changes
 } Document;
 
 
