@@ -15,6 +15,7 @@ Document *LoadDocumentsFromFolder(const char *folderPath) {
   struct dirent *entry; //declares a pointer to struct dirent, which will hold info
   Document *head = NULL; // initialize the linked list of documents, head
 
+<<<<<<< Updated upstream
   while ((entry = readdir(dir))) { // Loop throught all files
     if (entry->d_type ==
         DT_REG) { // Regular files only, it checks if the file is regular
@@ -27,6 +28,18 @@ Document *LoadDocumentsFromFolder(const char *folderPath) {
         doc->next = head; // Add it to the front of the list
         head = doc;
       }
+=======
+    while ((entry = readdir(dir))) { //Loop throught all files
+        if (entry->d_type == DT_REG) { // Regular files only, it checks if the file is regular (not any other directories)
+            char path[1024];
+            snprintf(path, sizeof(path), "%s/%s", folderPath, entry->d_name);
+            Document *doc = document_desserialize(path);    //Load the document from file
+            if (doc) {
+                doc->next = head; //Add it to the front of the list
+                head = doc;
+            }
+        }
+>>>>>>> Stashed changes
     }
   }
 
