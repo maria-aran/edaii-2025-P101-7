@@ -13,6 +13,7 @@ typedef struct Document {
   struct Document *next;
 } Document;
 
+
 // functions for documents:
 Document *document_desserialize(char *path);
 Document *CreateDocument(int id, const char *title, const char *body);
