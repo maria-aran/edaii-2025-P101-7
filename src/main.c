@@ -1,108 +1,44 @@
-#include "dataset.h"
-#include "document.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "dataset.h"        // Added for LoadDocumentsFromFolder and FreeDocumentList
+#include "document.h"       // For Document
+#include "query.h"          // For Query, Query_link_list, ParseQueryString, etc.
 
 int main() {
-  // Load all documents from the dataset folder
-  Document *docs = LoadDocumentsFromFolder("datasets/wikipedia270");
-
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-  if (!docs) {
-    printf("No documents found.\n");
-    return 1;
-  }
-
-  printf("Documents loaded:\n");
-  PrintDocumentList(docs); // Print the list of tittles
-
-  // Asks users what document to view
-  int choice;
-  printf("Enter document index to view: ");
-  scanf("%d", &choice);
-
-  Document *selected = docs;
-  for (int i = 0; i < choice && selected != NULL; i++) {
-    selected = selected->next;
-  }
-
-  // Print the selected document or error if index is invalid
-  if (selected) {
-    PrintDocument(selected);
-  } else {
-    printf("Invalid selection.\n");
-  }
-
-  // Free memory
-  FreeDocumentList(docs);
-  return 0;
-    //LAB 1
-    // Load all documents from the dataset folder
+    // Load documents
     Document *docs = LoadDocumentsFromFolder("datasets/wikipedia270");
-
     if (!docs) {
-        printf("No documents found.\n");
+        printf("No documents loaded.\n");
         return 1;
     }
 
-    printf("Documents loaded:\n");
-    PrintDocumentList(docs); //Print the list of tittles
-
-=======
-    //LAB 1
-    // Load all documents from the dataset folder
-    Document *docs = LoadDocumentsFromFolder("datasets/wikipedia270");
-
-    if (!docs) {
-        printf("No documents found.\n");
+    // Prompt user for a query
+    char input[256];
+    printf("Enter your query: ");
+    if (!fgets(input, sizeof(input), stdin)) {
+        printf("Failed to read input.\n");
         return 1;
     }
 
-    printf("Documents loaded:\n");
-    PrintDocumentList(docs); //Print the list of tittles
+    // Remove newline if present
+    input[strcspn(input, "\n")] = '\0';
 
->>>>>>> Stashed changes
-    //Asks users what document to view
-    int choice;
-    printf("Enter document index to view: ");
-    scanf("%d", &choice);
-
-    
-    Document *selected = docs;
-    for (int i = 0; i < choice && selected != NULL; i++) {
-        selected = selected->next;
+    // Parse query string into linked list
+    Query_link_list *queryList = ParseQueryString(input);
+    if (!queryList) {
+        printf("Failed to parse query.\n");
+        return 1;
     }
 
-    // Print the selected document or error if index is invalid
-    if (selected) {
-        PrintDocument(selected);
-    } else {
-        printf("Invalid selection.\n");
-    }
+    // Debug print the parsed query
+    PrintQueryList(queryList);
 
-    // Free memory
-    FreeDocumentList(docs);
+    // Free query list memory
+    FreeQueryList(queryList);
+
+    // Free document list memory
+    FreeDocumentList(docs); // Corrected from FreeDocuments to FreeDocumentList
+
     return 0;
-    
-
-
-    // //LAB 2
-    // // Sample input string (normal and excluded keywords)
-    // const char *input = "apple banana -cat";
-
-    // // Parse the query string into a linked list
-    // Query *query = ParseQueryString(input);
-    
-    // // Print the parsed query list
-    // PrintQuery(query);
-    
-    // // Free memory
-    // FreeQuery(query);
-    
-    // return 0;
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 }

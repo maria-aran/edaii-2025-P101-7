@@ -1,4 +1,5 @@
 #include "query.h"
+#include "document.h"  
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -72,7 +73,7 @@ Document* LinearSearchDocuments(Document *docs, Query_link_list *query) {
     for (Document *doc = docs; doc != NULL; doc = doc->next) {
         bool matches = true;
         for (Query *q = query->head; q != NULL; q = q->next) {
-            bool found = ContainsKeyword(doc->text, q->keyword);
+            bool found = ContainsKeyword(doc->body, q->keyword);
             if ((q->exclude && found) || (!q->exclude && !found)) {
                 matches = false;
                 break;
@@ -82,7 +83,7 @@ Document* LinearSearchDocuments(Document *docs, Query_link_list *query) {
             // Add to front of result list
             Document *copy = malloc(sizeof(Document));
             copy->id = doc->id;
-            copy->text = strdup(doc->text);
+            copy->body = strdup(doc->body);
             copy->next = result;
             result = copy;
         }

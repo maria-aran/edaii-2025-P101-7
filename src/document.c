@@ -93,9 +93,11 @@ void FreeDocument(Document *doc) {
 
 // Prints the full contents of a Document
 void PrintDocument(Document *doc) {
+  if (!doc) return;
   printf("Document ID: %d\n", doc->id);
-  printf("Title: %s\n", doc->title);
-  printf("Body: %s\n", doc->body);
+  printf("Title: %s\n", doc->title ? doc->title : "(no title)");
+  printf("Body:\n%s\n", doc->body ? doc->body : "(no body)");
   printf("Links: ");
   PrintLinks(doc->links);
+  printf("\n");
 }

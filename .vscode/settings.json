@@ -1,6 +1,7 @@
 {
     "files.eol": "\n",
     "files.associations": {
-        "dataset.h": "c"
+        "dataset.h": "c",
+        "string.h": "c"
     },
 }
