@@ -4,6 +4,7 @@
 #include "links.h"
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 // Structure of Document:
 typedef struct Document {
   int id;
@@ -13,6 +14,8 @@ typedef struct Document {
   Link *links;
   struct Document *next;
 =======
+=======
+>>>>>>> Stashed changes
 //Structure of Document:
 typedef struct Document{
     int id;

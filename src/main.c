@@ -8,6 +8,7 @@ int main() {
   Document *docs = LoadDocumentsFromFolder("datasets/wikipedia270");
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   if (!docs) {
     printf("No documents found.\n");
     return 1;
@@ -49,6 +50,20 @@ int main() {
     printf("Documents loaded:\n");
     PrintDocumentList(docs); //Print the list of tittles
 
+=======
+    //LAB 1
+    // Load all documents from the dataset folder
+    Document *docs = LoadDocumentsFromFolder("datasets/wikipedia270");
+
+    if (!docs) {
+        printf("No documents found.\n");
+        return 1;
+    }
+
+    printf("Documents loaded:\n");
+    PrintDocumentList(docs); //Print the list of tittles
+
+>>>>>>> Stashed changes
     //Asks users what document to view
     int choice;
     printf("Enter document index to view: ");
@@ -87,5 +102,8 @@ int main() {
     // FreeQuery(query);
     
     // return 0;
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 }
