@@ -67,7 +67,7 @@ bool ContainsKeyword(const char *text, const char *keyword) {
     return false;
 }
 
-// Perform linear search through documents
+// Perform linear search through documents (don't delete, useful for tests)
 Document* LinearSearchDocuments(Document *docs, Query_link_list *query) {
     Document *result = NULL;
 
@@ -112,8 +112,4 @@ void FreeQueryList(Query_link_list *list) {
         free(temp);
     }
     free(list);
-}
-
-void LinearSearchDocuments(Document *docs, Query_link_list *query);{
-
 }
