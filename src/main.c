@@ -37,7 +37,6 @@ int main() {
   // Free memory
   FreeDocumentList(docs);
   return 0;
-=======
     //LAB 1
     // Load all documents from the dataset folder
     Document *docs = LoadDocumentsFromFolder("datasets/wikipedia270");

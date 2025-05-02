@@ -2,19 +2,20 @@
 #define QUERY_H
 
 #include <stdbool.h>
-#include "document.h" 
+
+// Forward declaration to avoid circular include
+struct Document;
+typedef struct Document Document;
 
 typedef struct Query {
-  char *keyword;
-  struct Query *next;
-    char *keyword;        // Keyword in the query
-    struct Query *next;   // Pointer to next query in the list
-    bool exclude;         // Whether the keyword is an exclusion (e.g., -cat)
+    char *keyword;
+    struct Query *next;
+    bool exclude;
 } Query;
 
 typedef struct {
-    Query *head;          // Head of the linked list
-    Query *tail;          // Tail of the linked list
+    Query *head;
+    Query *tail;
 } Query_link_list;
 
 // Function declarations
@@ -26,3 +27,4 @@ Document* LinearSearchDocuments(Document *docs, Query_link_list *query);
 void PrintQueryList(Query_link_list *list);
 
 #endif
+

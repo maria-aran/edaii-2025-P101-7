@@ -1,68 +1,113 @@
 #include "query.h"
-#include <ctype.h>
-#include <stdio.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
-// Initialize a dummy head for the query list
-Query *QueryInit() {
-  Query *head = malloc(sizeof(Query));
-  head->keyword = NULL;
-  head->next = NULL;
-  return head;
+// Create and initialize an empty query linked list
+Query_link_list* CreateQueryList(void) {
+    Query_link_list *list = malloc(sizeof(Query_link_list));
+    list->head = NULL;
+    list->tail = NULL;
+    return list;
 }
 
-// Add a keyword to the end of the list
-void QueryAdd(Query *head, const char *keyword) {
-  Query *newNode = malloc(sizeof(Query));
-  newNode->keyword = strdup(keyword);
-  newNode->next = NULL;
+// Add a keyword to the query list
+void AddQuery(Query_link_list *list, const char *word, bool exclude) {
+    Query *newNode = malloc(sizeof(Query));
+    newNode->keyword = strdup(word);
+    newNode->exclude = exclude;
+    newNode->next = NULL;
 
-  Query *curr = head;
-  while (curr->next != NULL) {
-    curr = curr->next;
-  }
-  curr->next = newNode;
-}
-
-// Parse a string like "apple banana -cat" into a linked list
-Query *ParseQueryString(const char *input) {
-  Query *head = QueryInit();
-  char *copy = strdup(input);
-  char *token = strtok(copy, " \n\t");
-
-  while (token != NULL) {
-    if (strlen(token) > 0) {
-      QueryAdd(head, token);
+    if (list->tail == NULL) {
+        list->head = list->tail = newNode;
+    } else {
+        list->tail->next = newNode;
+        list->tail = newNode;
     }
-    token = strtok(NULL, " \n\t");
-  }
-
-  free(copy);
-  return head;
 }
 
-// Print the list of keywords (for debugging)
-void PrintQuery(Query *head) {
-  Query *curr = head->next;
-  printf("Query keywords: ");
-  while (curr != NULL) {
-    printf("%s", curr->keyword);
-    if (curr->next)
-      printf(", ");
-    curr = curr->next;
-  }
-  printf("\n");
+// Parse a search string like "apple banana -cat" into a linked list
+Query_link_list* ParseQueryString(const char *input) {
+    Query_link_list *list = CreateQueryList();
+    char *copy = strdup(input);
+    char *token = strtok(copy, " \n\t");
+
+    while (token != NULL) {
+        bool exclude = false;
+        if (token[0] == '-') {
+            exclude = true;
+            token++;  // Skip the '-'
+        }
+        if (strlen(token) > 0) {
+            AddQuery(list, token, exclude);
+        }
+        token = strtok(NULL, " \n\t");
+    }
+
+    free(copy);
+    return list;
 }
 
-// Free all memory associated with the query list
-void FreeQuery(Query *head) {
-  Query *curr = head;
-  while (curr != NULL) {
-    Query *temp = curr;
-    curr = curr->next;
-    free(temp->keyword);
-    free(temp);
-  }
+// Check if a document contains a keyword (case-sensitive match)
+bool ContainsKeyword(const char *text, const char *keyword) {
+    const char *p = text;
+    while (*p) {
+        const char *t = p;
+        const char *k = keyword;
+        while (*k && *t == *k) {
+            ++t;
+            ++k;
+        }
+        if (*k == '\0') return true;
+        ++p;
+    }
+    return false;
+}
+
+// Perform linear search through documents
+Document* LinearSearchDocuments(Document *docs, Query_link_list *query) {
+    Document *result = NULL;
+
+    for (Document *doc = docs; doc != NULL; doc = doc->next) {
+        bool matches = true;
+        for (Query *q = query->head; q != NULL; q = q->next) {
+            bool found = ContainsKeyword(doc->text, q->keyword);
+            if ((q->exclude && found) || (!q->exclude && !found)) {
+                matches = false;
+                break;
+            }
+        }
+        if (matches) {
+            // Add to front of result list
+            Document *copy = malloc(sizeof(Document));
+            copy->id = doc->id;
+            copy->text = strdup(doc->text);
+            copy->next = result;
+            result = copy;
+        }
+    }
+    return result;
+}
+
+// Print the list of query keywords
+void PrintQueryList(Query_link_list *list) {
+    printf("Query keywords: ");
+    for (Query *q = list->head; q != NULL; q = q->next) {
+        printf("%s%s", q->exclude ? "-" : "", q->keyword);
+        if (q->next) printf(", ");
+    }
+    printf("\n");
+}
+
+// Free the query list
+void FreeQueryList(Query_link_list *list) {
+    Query *curr = list->head;
+    while (curr) {
+        Query *temp = curr;
+        curr = curr->next;
+        free(temp->keyword);
+        free(temp);
+    }
+    free(list);
 }

@@ -3,8 +3,6 @@
 
 #include "links.h"
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 // Structure of Document:
 typedef struct Document {
   int id;
@@ -15,7 +13,6 @@ typedef struct Document {
   struct Document *next;
 =======
 =======
->>>>>>> Stashed changes
 //Structure of Document:
 typedef struct Document{
     int id;
@@ -26,6 +23,7 @@ typedef struct Document{
     struct Document *next;
 >>>>>>> Stashed changes
 } Document;
+
 
 // functions for documents:
 Document *document_desserialize(char *path);
