@@ -1,7 +1,6 @@
 #include "query.h"
 #include <ctype.h>
 #include <stdio.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -26,7 +25,7 @@ void QueryAdd(Query *head, const char *keyword) {
   curr->next = newNode;
 }
 
-// Parse a string like "apple banana -cat" into a linked list
+// Parse a string like "apple banana - cat" into a linked list
 Query *ParseQueryString(const char *input) {
   Query *head = QueryInit();
   char *copy = strdup(input);
@@ -65,4 +64,8 @@ void FreeQuery(Query *head) {
     free(temp->keyword);
     free(temp);
   }
+}
+
+void LinearSearchDocuments(Document *docs, Query_link_list *query);{
+
 }
