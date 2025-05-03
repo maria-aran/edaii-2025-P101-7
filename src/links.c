@@ -23,13 +23,13 @@ void FreeLinks(Link *head) {
 void PrintLinks(Link *head) {
   Link *current = head->next;
   if (!current) {
-    printf("(none)");
+      printf("(none)");
   }
   while (current) {
-    printf("%d", current->id);
-    if (current->next)
-      printf(", ");
-    current = current->next;
+      printf("%d", current->id);
+      if (current->next)
+          printf(", ");
+      current = current->next;
   }
   printf("\n");
 }

@@ -1,114 +1,80 @@
 #include "query.h"
-#include "document.h"  
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
-// Create and initialize an empty query linked list
-Query_link_list* CreateQueryList(void) {
-    Query_link_list *list = malloc(sizeof(Query_link_list));
-    list->head = NULL;
-    list->tail = NULL;
-    return list;
-}
+Query* CreateQuery(const char* str) {
+    Query* query = malloc(sizeof(Query));
+    query->head = NULL;
 
-// Add a keyword to the query list
-void AddQuery(Query_link_list *list, const char *word, bool exclude) {
-    Query *newNode = malloc(sizeof(Query));
-    newNode->keyword = strdup(word);
-    newNode->exclude = exclude;
-    newNode->next = NULL;
+    char* copy = strdup(str);
+    char* token = strtok(copy, " ");
 
-    if (list->tail == NULL) {
-        list->head = list->tail = newNode;
-    } else {
-        list->tail->next = newNode;
-        list->tail = newNode;
-    }
-}
-
-// Parse a search string like "apple banana -cat" into a linked list
-Query_link_list* ParseQueryString(const char *input) {
-    Query_link_list *list = CreateQueryList();
-    char *copy = strdup(input);
-    char *token = strtok(copy, " \n\t");
-
-    while (token != NULL) {
-        bool exclude = false;
-        if (token[0] == '-') {
-            exclude = true;
-            token++;  // Skip the '-'
-        }
-        if (strlen(token) > 0) {
-            AddQuery(list, token, exclude);
-        }
-        token = strtok(NULL, " \n\t");
+    while (token) {
+        QueryNode* node = malloc(sizeof(QueryNode));
+        node->is_excluded = (token[0] == '-');
+        node->keyword = strdup(node->is_excluded ? token + 1 : token);
+        node->next = query->head;
+        query->head = node;
+        token = strtok(NULL, " ");
     }
 
     free(copy);
-    return list;
+    return query;
 }
 
-// Check if a document contains a keyword (case-sensitive match)
-bool ContainsKeyword(const char *text, const char *keyword) {
-    const char *p = text;
-    while (*p) {
-        const char *t = p;
-        const char *k = keyword;
-        while (*k && *t == *k) {
-            ++t;
-            ++k;
+void FreeQuery(Query* query) {
+    QueryNode* current = query->head;
+    while (current) {
+        QueryNode* next = current->next;
+        free(current->keyword);
+        free(current);
+        current = next;
+    }
+    free(query);
+}
+
+QueryQueue* CreateQueryQueue(int capacity) {
+    QueryQueue* queue = malloc(sizeof(QueryQueue));
+    queue->queries = malloc(sizeof(Query*) * capacity);
+    queue->capacity = capacity;
+    queue->size = 0;
+    queue->front = 0;
+    queue->rear = -1;
+    return queue;
+}
+
+void EnqueueQuery(QueryQueue* queue, Query* query) {
+    if (queue->size == queue->capacity) {
+        queue->front = (queue->front + 1) % queue->capacity;
+        queue->size--;
+    }
+    queue->rear = (queue->rear + 1) % queue->capacity;
+    queue->queries[queue->rear] = query;
+    queue->size++;
+}
+
+void PrintQueryQueue(QueryQueue* queue) {
+    printf("Últimas %d consultas:\n", queue->size);
+    for (int i = 0; i < queue->size; i++) {
+        int index = (queue->front + i) % queue->capacity;
+        printf("- ");
+        Query* q = queue->queries[index];
+        QueryNode* curr = q->head;
+        while (curr) {
+            if (curr->is_excluded)
+                printf("-%s ", curr->keyword);
+            else
+                printf("%s ", curr->keyword);
+            curr = curr->next;
         }
-        if (*k == '\0') return true;
-        ++p;
+        printf("\n");
     }
-    return false;
 }
 
-// Perform linear search through documents
-Document* LinearSearchDocuments(Document *docs, Query_link_list *query) {
-    Document *result = NULL;
-
-    for (Document *doc = docs; doc != NULL; doc = doc->next) {
-        bool matches = true;
-        for (Query *q = query->head; q != NULL; q = q->next) {
-            bool found = ContainsKeyword(doc->body, q->keyword);
-            if ((q->exclude && found) || (!q->exclude && !found)) {
-                matches = false;
-                break;
-            }
-        }
-        if (matches) {
-            // Add to front of result list
-            Document *copy = malloc(sizeof(Document));
-            copy->id = doc->id;
-            copy->body = strdup(doc->body);
-            copy->next = result;
-            result = copy;
-        }
-    }
-    return result;
+void FreeQueryQueue(QueryQueue* queue) {
+    free(queue->queries);
+    free(queue);
 }
 
-// Print the list of query keywords
-void PrintQueryList(Query_link_list *list) {
-    printf("Query keywords: ");
-    for (Query *q = list->head; q != NULL; q = q->next) {
-        printf("%s%s", q->exclude ? "-" : "", q->keyword);
-        if (q->next) printf(", ");
-    }
-    printf("\n");
-}
-
-// Free the query list
-void FreeQueryList(Query_link_list *list) {
-    Query *curr = list->head;
-    while (curr) {
-        Query *temp = curr;
-        curr = curr->next;
-        free(temp->keyword);
-        free(temp);
-    }
-    free(list);
-}

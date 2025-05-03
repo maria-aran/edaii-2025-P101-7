@@ -7,7 +7,7 @@
 typedef struct Document {
   int id;
   char *title;
-  float revelance;
+  float relevance;
   char *body;
   Link *links;
   struct Document *next;
@@ -15,7 +15,7 @@ typedef struct Document {
 
 
 // functions for documents:
-Document *document_desserialize(char *path);
+Document *document_desserialize(const char *path);
 Document *CreateDocument(int id, const char *title, const char *body);
 void FreeDocument(Document *doc);
 void PrintDocument(Document *doc);

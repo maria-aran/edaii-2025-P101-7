@@ -1,30 +1,34 @@
 #ifndef QUERY_H
 #define QUERY_H
 
-#include <stdbool.h>
-
-// Forward declaration to avoid circular include
-struct Document;
-typedef struct Document Document;
+typedef struct QueryNode {
+    char* keyword;
+    int is_excluded; // 1 si está excluido con '-', 0 si no
+    struct QueryNode* next;
+} QueryNode;
 
 typedef struct Query {
-    char *keyword;
-    struct Query *next;
-    bool exclude;
+    QueryNode* head;
 } Query;
 
-typedef struct {
-    Query *head;
-    Query *tail;
-} Query_link_list;
+Query* CreateQuery(const char* str);
+void FreeQuery(Query* query);
 
-// Function declarations
-Query_link_list* CreateQueryList(void);
-void FreeQueryList(Query_link_list *list);
-Query_link_list* ParseQueryString(const char *input);
-bool ContainsKeyword(const char *text, const char *keyword);
-Document* LinearSearchDocuments(Document *docs, Query_link_list *query);
-void PrintQueryList(Query_link_list *list);
+// ------------------------------
+// Cola de las últimas queries
+// ------------------------------
+
+typedef struct QueryQueue {
+    Query** queries;
+    int capacity;
+    int size;
+    int front;
+    int rear;
+} QueryQueue;
+
+QueryQueue* CreateQueryQueue(int capacity);
+void EnqueueQuery(QueryQueue* queue, Query* query);
+void PrintQueryQueue(QueryQueue* queue);
+void FreeQueryQueue(QueryQueue* queue);
 
 #endif
-
