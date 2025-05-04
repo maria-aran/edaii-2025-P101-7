@@ -1,17 +1,16 @@
 #ifndef LINKS_H
 #define LINKS_H
 
+// Link structure: holds a link ID and pointer to next link
 typedef struct Link {
-  int id;
-  struct Link *next;
+    int id;           // Document ID this link points to
+    struct Link *next; // Next link in the list
 } Link;
 
-// Initialize an empty Link list (with head node)
+// Initialize an empty links list
 Link *LinksInit();
-
-// Free a linked list of Links
+// Free all links
 void FreeLinks(Link *head);
-
 // Print all link IDs
 void PrintLinks(Link *head);
 

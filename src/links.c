@@ -2,34 +2,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// Initialize an empty links list with a dummy head node
 Link *LinksInit() {
-  Link *head = (Link *)malloc(sizeof(Link));
-  head->id = -1; // Dummy head node (with invalid id)
-  head->next = NULL;
-  return head;
+    Link *head = malloc(sizeof(Link));
+    if (!head) return NULL;
+    head->id = -1; // Invalid ID for dummy node
+    head->next = NULL;
+    return head;
 }
 
-// Frees all links from memory
+// Free all links in the list
 void FreeLinks(Link *head) {
-  Link *current = head;
-  while (current != NULL) {
-    Link *temp = current;
-    current = current->next;
-    free(temp);
-  }
+    Link *current = head;
+    while (current) {
+        Link *temp = current;
+        current = current->next;
+        free(temp);
+    }
 }
 
-// Prints the list of link IDs
+// Print all link IDs
 void PrintLinks(Link *head) {
-  Link *current = head->next;
-  if (!current) {
-      printf("(none)");
-  }
-  while (current) {
-      printf("%d", current->id);
-      if (current->next)
-          printf(", ");
-      current = current->next;
-  }
-  printf("\n");
+    Link *current = head ? head->next : NULL;
+    if (!current) {
+        printf("(none)\n");
+        return;
+    }
+    while (current) {
+        printf("%d", current->id);
+        if (current->next) printf(", ");
+        current = current->next;
+    }
+    printf("\n");
 }

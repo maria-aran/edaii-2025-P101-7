@@ -3,21 +3,23 @@
 
 #include "links.h"
 
-// Structure of Document:
+// Document structure: holds document data and links to next document
 typedef struct Document {
-  int id;
-  char *title;
-  float relevance;
-  char *body;
-  Link *links;
-  struct Document *next;
+    int id;           // Document ID
+    char *title;      // Document title
+    char *body;       // Document body
+    float relevance;  // Relevance score (not used until Lab 4)
+    Link *links;      // List of links to other documents
+    struct Document *next; // Next document in linked list
 } Document;
 
-
-// functions for documents:
+// Load document from file
 Document *document_desserialize(const char *path);
+// Create a new document
 Document *CreateDocument(int id, const char *title, const char *body);
+// Free a single document
 void FreeDocument(Document *doc);
+// Print a single document
 void PrintDocument(Document *doc);
 
 #endif
