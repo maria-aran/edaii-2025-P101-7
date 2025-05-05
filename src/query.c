@@ -6,50 +6,72 @@
 
 // Create a query from a string (e.g., "cute cat -dog").
 Query *CreateQuery(const char *str) {
-    // Allocate memory for the query.
+    if (!str) return NULL;
+
     Query *query = malloc(sizeof(Query));
     if (!query) return NULL;
-    query->head = NULL; // Start with an empty list of keywords.
+    query->head = NULL;
 
-    // Copy the input string so we can modify it.
+    // Make a modifiable copy of the input string
     char *input = strdup(str);
     if (!input) {
         free(query);
         return NULL;
     }
 
-    // Split the input into words (keywords) using spaces.
-    char *token = strtok(input, " ");
-    while (token) {
-        int exclude = 0; // 0 means include, 1 means exclude.
-        char *keyword = token;
+    char *ptr = input;
+    while (*ptr) {
+        // Skip leading spaces
+        while (isspace(*ptr)) ptr++;
+        if (*ptr == '\0') break;
 
-        // If the word starts with '-', it’s an exclude keyword.
-        if (token[0] == '-') {
+        int exclude = 0;
+        if (*ptr == '-') {
             exclude = 1;
-            keyword = token + 1; // Skip the '-'.
-            if (!keyword[0]) {   // Skip empty keywords (e.g., "- ").
-                token = strtok(NULL, " ");
-                continue;
-            }
+            ptr++;
         }
 
-        // Create a new node for this keyword.
-        QueryNode *node = malloc(sizeof(QueryNode));
-        if (!node) {
+        // Start of the word
+        char *start = ptr;
+
+        // Move ptr to the end of the word
+        while (*ptr && !isspace(*ptr)) ptr++;
+
+        int len = ptr - start;
+        if (len == 0) continue;
+
+        // Allocate and copy the keyword into a new string
+        char *word = malloc(len + 1);
+        if (!word) {
             free(input);
             FreeQuery(query);
             return NULL;
         }
-        node->keyword = strdup(keyword); // Copy the keyword.
-        node->exclude = exclude;
-        node->next = query->head; // Add to front of list.
-        query->head = node;
+        strncpy(word, start, len);
+        word[len] = '\0';
 
-        token = strtok(NULL, " "); // Get next word.
+        // Skip invalid empty words (like just "-")
+        if (!isalnum(word[0])) {
+            free(word);
+            continue;
+        }
+
+        // Create the query node
+        QueryNode *node = malloc(sizeof(QueryNode));
+        if (!node) {
+            free(word);
+            free(input);
+            FreeQuery(query);
+            return NULL;
+        }
+
+        node->keyword = word;
+        node->exclude = exclude;
+        node->next = query->head;
+        query->head = node;
     }
 
-    free(input); // Free the copied input string.
+    free(input);
     return query;
 }
 
@@ -79,21 +101,28 @@ int string_contains(const char *text, const char *keyword) {
         // Check if the keyword matches at this position.
         int match = 1;
         for (int j = 0; j < keyword_len; j++) {
-            if (text[i + j] != keyword[j]) {
+            if (tolower(text[i + j]) != tolower(keyword[j])) {
                 match = 0;
                 break;
             }
         }
 
         // If we found a match, check if it’s a whole word.
+       
         if (match) {
-            // Check start: either beginning of text or not a letter/number.
+            // Check start: either beginning of text or not a letter/number
             int is_word_start = (i == 0) || !isalnum(text[i - 1]);
-            // Check end: either end of text or not a letter/number.
+            // Check end: either end of text, not a letter/number, or followed by 's'
             int is_word_end = (i + keyword_len == text_len) || !isalnum(text[i + keyword_len]);
+            // Allow plural: if followed by 's', check next character for word boundary
+            int is_plural = 0;
+            if (i + keyword_len < text_len && text[i + keyword_len] == 's') {
+                is_plural = 1;
+                is_word_end = (i + keyword_len + 1 == text_len) || !isalnum(text[i + keyword_len + 1]);
+            }
 
-            if (is_word_start && is_word_end) {
-                return 1; // Found the keyword as a whole word.
+            if (is_word_start && (is_word_end || is_plural)) {
+                return 1; // Found the keyword as a whole word or plural
             }
         }
 
@@ -105,42 +134,37 @@ int string_contains(const char *text, const char *keyword) {
 
 // Search for up to 5 documents that match the query.
 Document *LinearSearchDocuments(Document *docs, Query *query) {
-    Document *results = NULL; // List of matching documents.
-    int count = 0; // Number of matches found.
+    Document *results = NULL;
+    Document *last = NULL;
 
-    // Go through each document.
-    for (Document *doc = docs; doc && count < 5; doc = doc->next) {
-        int include_ok = 0; // At least one include keyword must be found.
-        int exclude_ok = 1; // No exclude keywords must be found.
+    for (Document *doc = docs; doc; doc = doc->next) {
+        int include_ok = 0;
+        int exclude_ok = 1;
 
-        // Check each keyword in the query.
         for (QueryNode *node = query->head; node; node = node->next) {
-            // Check if the keyword is in the title or body.
             int found = string_contains(doc->title, node->keyword) ||
                         string_contains(doc->body, node->keyword);
 
-            if (node->exclude) {
-                // If it’s an exclude keyword (e.g., -dog) and found, reject the document.
-                if (found) {
-                    exclude_ok = 0;
-                    break;
-                }
-            } else {
-                // If it’s an include keyword (e.g., cat), set include_ok if found.
-                if (found) {
-                    include_ok = 1;
-                }
+            if (node->exclude && found) {
+                exclude_ok = 0;
+                break;
+            } else if (!node->exclude && found) {
+                include_ok = 1;
             }
         }
 
-        // If the document has at least one include keyword and no exclude keywords, add it.
         if (include_ok && exclude_ok) {
             Document *copy = CreateDocument(doc->id, doc->title, doc->body);
-            if (copy) {
-                copy->links = LinksInit(); // Add empty links list.
-                copy->next = results; // Add to front of results.
+            if (!copy) continue;
+            copy->links = LinksInit();
+            copy->next = NULL;
+
+            if (!results) {
                 results = copy;
-                count++;
+                last = copy;
+            } else {
+                last->next = copy;
+                last = copy;
             }
         }
     }

@@ -63,15 +63,17 @@ void PrintDocumentList(Document *head) {
     }
 }
 
-// Print up to 5 search results with title and first 150 characters of body.
+// Print all search results with title and first 150 characters of body.
 void PrintSearchResults(Document *head) {
     Document *current = head;
     int count = 0;
+
     if (!current) {
         printf("(no results)\n");
         return;
     }
-    while (current && count < 5) {
+
+    while (current) {
         // Print the result number and title.
         printf("[%d] %s\n", count, current->title ? current->title : "(no title)");
         printf("Body: ");
@@ -89,7 +91,9 @@ void PrintSearchResults(Document *head) {
             printf("(no body)\n");
         }
         printf("\n"); // Add a blank line between results.
+
         current = current->next;
         count++;
     }
 }
+
