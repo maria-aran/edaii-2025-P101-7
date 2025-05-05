@@ -110,8 +110,8 @@ Document *LinearSearchDocuments(Document *docs, Query *query) {
 
     // Go through each document.
     for (Document *doc = docs; doc && count < 5; doc = doc->next) {
-        int include_ok = 1; // Assume all include keywords are found.
-        int exclude_ok = 1; // Assume no exclude keywords are found.
+        int include_ok = 0; // At least one include keyword must be found.
+        int exclude_ok = 1; // No exclude keywords must be found.
 
         // Check each keyword in the query.
         for (QueryNode *node = query->head; node; node = node->next) {
@@ -123,22 +123,18 @@ Document *LinearSearchDocuments(Document *docs, Query *query) {
                 // If it’s an exclude keyword (e.g., -dog) and found, reject the document.
                 if (found) {
                     exclude_ok = 0;
-                    // printf("Debug: Excluding '%s' because it contains '%s'\n", doc->title, node->keyword);
                     break;
                 }
             } else {
-                // If it’s an include keyword (e.g., cat) and not found, reject the document.
-                if (!found) {
-                    include_ok = 0;
-                    // printf("Debug: Excluding '%s' because it lacks '%s'\n", doc->title, node->keyword);
-                    break;
+                // If it’s an include keyword (e.g., cat), set include_ok if found.
+                if (found) {
+                    include_ok = 1;
                 }
             }
         }
 
-        // If the document has all include keywords and no exclude keywords, add it.
+        // If the document has at least one include keyword and no exclude keywords, add it.
         if (include_ok && exclude_ok) {
-            // printf("Debug: Including '%s'\n", doc->title);
             Document *copy = CreateDocument(doc->id, doc->title, doc->body);
             if (copy) {
                 copy->links = LinksInit(); // Add empty links list.

@@ -31,7 +31,7 @@ void PrintDocument(Document *doc) {
         printf("No document to display.\n");
         return;
     }
-    printf("ID: %d\n", doc->id);
+    printf("Document ID: %d\n", doc->id);
     printf("Title: %s\n", doc->title ? doc->title : "(no title)");
     printf("Links: ");
     PrintLinks(doc->links);
