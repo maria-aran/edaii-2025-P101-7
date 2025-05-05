@@ -2,15 +2,16 @@
 #include "../src/document.h"
 #include "../src/links.h"
 #include "../src/query.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 // Counter for test numbers
-static int test_number = 0;
+int test_number = 0;
 
-// Lab 1: Test creating a document
+//1.  Lab 1: Test creating a document
 void test_create_document() {
     // Create a document with ID 1, title "Cats", body "I love cats"
     Document *doc = CreateDocument(1, "Cats", "I love cats");
@@ -25,7 +26,7 @@ void test_create_document() {
     printf("test %d (creating documents) passed!\n", ++test_number);
 }
 
-// Lab 1: Test freeing a document
+//2.  Lab 1: Test freeing a document
 void test_free_document() {
     // Create a document
     Document *doc = CreateDocument(1, "Cats", "I love cats");
@@ -34,7 +35,7 @@ void test_free_document() {
     printf("test %d (freeing documents) passed!\n", ++test_number);
 }
 
-// Lab 1: Test printing a document
+//3.  Lab 1: Test printing a document
 void test_print_document() {
     // Create a document
     Document *doc = CreateDocument(1, "Cats", "I love cats.");
@@ -48,7 +49,7 @@ void test_print_document() {
     printf("test %d (printing documents) passed!\n", ++test_number);
 }
 
-// Lab 1: Test loading a document from a file
+//4. Lab 1: Test loading a document from a file
 void test_document_desserialize() {
     // Create a temporary file with document data
     FILE *temp = fopen("temp_doc.txt", "w");
@@ -74,7 +75,7 @@ void test_document_desserialize() {
     printf("test %d (loading document from file) passed!\n", ++test_number);
 }
 
-// Lab 1: Test loading documents from a folder
+//5. Lab 1: Test loading documents from a folder
 void test_load_documents_from_folder() {
     // Create a temporary folder and file
     system("mkdir -p test_temp");
@@ -99,7 +100,7 @@ void test_load_documents_from_folder() {
     printf("test %d (loading documents from folder) passed!\n", ++test_number);
 }
 
-// Lab 1: Test printing document list
+//6. Lab 1: Test printing document list
 void test_print_document_list() {
     // Create two documents
     Document *doc1 = CreateDocument(1, "Cats", "I love cats");
@@ -111,7 +112,7 @@ void test_print_document_list() {
     printf("test %d (printing document list) passed!\n", ++test_number);
 }
 
-// Lab 1: Test freeing document list
+//7.  Lab 1: Test freeing document list
 void test_free_document_list() {
     // Create two documents
     Document *doc1 = CreateDocument(1, "Cats", "I love cats");
@@ -121,7 +122,7 @@ void test_free_document_list() {
     printf("test %d (freeing document list) passed!\n", ++test_number);
 }
 
-// Lab 2: Test creating a query
+//8. Lab 2: Test creating a query
 void test_create_query() {
     // Create query "cat -dog"
     Query *q = CreateQuery("cat -dog");
@@ -153,7 +154,7 @@ void test_create_query() {
     printf("test %d (creating query) passed!\n", ++test_number);
 }
 
-// Lab 2: Test freeing a query
+//9. Lab 2: Test freeing a query
 void test_free_query() {
     // Create a query
     Query *q = CreateQuery("cat -dog");
@@ -162,7 +163,7 @@ void test_free_query() {
     printf("test %d (freeing query) passed!\n", ++test_number);
 }
 
-// Lab 2: Test whole-word matching
+//10. Lab 2: Test whole-word matching
 void test_string_contains() {
     // Test string_contains (must be non-static in query.c)
     extern int string_contains(const char *, const char *);
@@ -173,13 +174,12 @@ void test_string_contains() {
     printf("test %d (whole-word matching) passed!\n", ++test_number);
 }
 
-// Lab 2: Test linear search
 void test_linear_search() {
-    // Create test documents
-    Document *doc1 = CreateDocument(1, "Cats", "I love cat.");
-    Document *doc2 = CreateDocument(2, "Dogs", "I love dogs, not cat.");
-    Document *doc3 = CreateDocument(3, "Pets", "Cats and dogs.");
-    Document *doc4 = CreateDocument(4, "More Cats", "Cats are great.");
+    // Create test documents with lowercase titles
+    Document *doc1 = CreateDocument(1, "cats", "I love cat.");
+    Document *doc2 = CreateDocument(2, "dogs", "I love dogs, not cat.");
+    Document *doc3 = CreateDocument(3, "pets", "Cats and dogs.");
+    Document *doc4 = CreateDocument(4, "more cats", "Cats are great.");
     doc1->next = doc2;
     doc2->next = doc3;
     doc3->next = doc4;
@@ -198,10 +198,10 @@ void test_linear_search() {
         if (current->id == 4) found_4 = 1;
         current = current->next;
     }
-    assert(found_1); // Should include "Cats"
-    assert(found_2); // Should include "Dogs"
-    assert(found_3); // Should include "Pets"
-    assert(found_4); // Should include "More Cats"
+    assert(found_1); // Should include "cats"
+    assert(found_2); // Should include "dogs"
+    assert(found_3); // Should include "pets"
+    assert(found_4); // Should include "more cats"
     // Debug print to inspect results
     printf("Query 'cat' results: ");
     current = results;
@@ -213,12 +213,20 @@ void test_linear_search() {
     FreeDocumentList(results);
     FreeQuery(q);
 
-    // Test query "cat dog"
+    // Test query "cat dog" (AND logic, both words required)
     q = CreateQuery("cat dog");
     results = LinearSearchDocuments(doc1, q);
     assert(results != NULL); // Should have results
-    assert(results->id == 3); // Should include "Pets"
+    assert(results->id == 3); // Should include "pets"
     assert(results->next == NULL); // Only one match
+    // Debug print to inspect results
+    printf("Query 'cat dog' results: ");
+    current = results;
+    while (current) {
+        printf("%d ", current->id);
+        current = current->next;
+    }
+    printf("\n");
     FreeDocumentList(results);
     FreeQuery(q);
 
@@ -232,7 +240,7 @@ void test_linear_search() {
     printf("test %d (linear search) passed!\n", ++test_number);
 }
 
-// Lab 2: Test printing search results
+//12. Lab 2: Test printing search results
 void test_print_search_results() {
     // Create two documents
     Document *doc1 = CreateDocument(1, "Cats", "I love cats. This is a long body to test truncation.");
@@ -244,7 +252,7 @@ void test_print_search_results() {
     printf("test %d (printing search results) passed!\n", ++test_number);
 }
 
-// Lab 2: Test query history
+//13. Lab 2: Test query history
 void test_query_history() {
     // Initialize history
     QueryHistory history;
