@@ -4,137 +4,167 @@
 #include <string.h>
 #include <ctype.h>
 
-// Create a query from a string (e.g., "cute cat -dog")
+// Create a query from a string (e.g., "cute cat -dog").
 Query *CreateQuery(const char *str) {
+    if (!str) return NULL;
+
     Query *query = malloc(sizeof(Query));
     if (!query) return NULL;
     query->head = NULL;
 
-    // Copy input to modify safely
+    // Make a modifiable copy of the input string
     char *input = strdup(str);
     if (!input) {
         free(query);
         return NULL;
     }
 
-    // Tokenize input by spaces
-    char *token = strtok(input, " ");
-    while (token) {
-        int exclude = 0;
-        char *keyword = token;
+    char *ptr = input;
+    while (*ptr) {
+        // Skip leading spaces
+        while (isspace(*ptr)) ptr++;
+        if (*ptr == '\0') break;
 
-        // Check if keyword starts with '-'
-        if (token[0] == '-') {
+        int exclude = 0;
+        if (*ptr == '-') {
             exclude = 1;
-            keyword = token + 1; // Skip the '-'
-            if (!keyword[0]) {   // Handle case like "- " (empty keyword)
-                token = strtok(NULL, " ");
-                continue;
-            }
+            ptr++;
         }
 
-        // Create new query node
-        QueryNode *node = malloc(sizeof(QueryNode));
-        if (!node) {
+        // Start of the word
+        char *start = ptr;
+
+        // Move ptr to the end of the word
+        while (*ptr && !isspace(*ptr)) ptr++;
+
+        int len = ptr - start;
+        if (len == 0) continue;
+
+        // Allocate and copy the keyword into a new string
+        char *word = malloc(len + 1);
+        if (!word) {
             free(input);
             FreeQuery(query);
             return NULL;
         }
-        node->keyword = strdup(keyword);
+        strncpy(word, start, len);
+        word[len] = '\0';
+
+        // Skip invalid empty words (like just "-")
+        if (!isalnum(word[0])) {
+            free(word);
+            continue;
+        }
+
+        // Create the query node
+        QueryNode *node = malloc(sizeof(QueryNode));
+        if (!node) {
+            free(word);
+            free(input);
+            FreeQuery(query);
+            return NULL;
+        }
+
+        node->keyword = word;
         node->exclude = exclude;
         node->next = query->head;
         query->head = node;
-
-        token = strtok(NULL, " ");
     }
 
     free(input);
     return query;
 }
 
-// Free a query and its nodes
+// Free a query and all its keywords.
 void FreeQuery(Query *query) {
     if (!query) return;
     QueryNode *current = query->head;
     while (current) {
         QueryNode *temp = current;
         current = current->next;
-        free(temp->keyword);
-        free(temp);
+        free(temp->keyword); // Free the keyword string.
+        free(temp); // Free the node.
     }
-    free(query);
+    free(query); // Free the query.
 }
 
-// Check if text contains keyword as a whole word (case-sensitive)
-static int string_contains(const char *text, const char *keyword) {
+// Check if a text contains a keyword as a whole word (case-sensitive).
+int string_contains(const char *text, const char *keyword) {
     if (!text || !keyword || !keyword[0]) return 0;
 
-    size_t keyword_len = strlen(keyword);
-    const char *pos = text;
+    // Go through the text character by character.
+    int text_len = strlen(text);
+    int keyword_len = strlen(keyword);
+    int i = 0;
 
-    while (*pos) {
-        // Find potential match
-        pos = strstr(pos, keyword);
-        if (!pos) return 0;
-
-        // Check word boundaries
-        int is_word_start = (pos == text) || !isalnum(*(pos - 1));
-        int is_word_end = !pos[keyword_len] || !isalnum(pos[keyword_len]);
-
-        if (is_word_start && is_word_end) {
-            return 1; // Found a whole-word match
+    while (i <= text_len - keyword_len) {
+        // Check if the keyword matches at this position.
+        int match = 1;
+        for (int j = 0; j < keyword_len; j++) {
+            if (tolower(text[i + j]) != tolower(keyword[j])) {
+                match = 0;
+                break;
+            }
         }
 
-        // Move to next character
-        pos++;
+        // If we found a match, check if it’s a whole word.
+       
+        if (match) {
+            // Check start: either beginning of text or not a letter/number
+            int is_word_start = (i == 0) || !isalnum(text[i - 1]);
+            // Check end: either end of text, not a letter/number, or followed by 's'
+            int is_word_end = (i + keyword_len == text_len) || !isalnum(text[i + keyword_len]);
+            // Allow plural: if followed by 's', check next character for word boundary
+            int is_plural = 0;
+            if (i + keyword_len < text_len && text[i + keyword_len] == 's') {
+                is_plural = 1;
+                is_word_end = (i + keyword_len + 1 == text_len) || !isalnum(text[i + keyword_len + 1]);
+            }
+
+            if (is_word_start && (is_word_end || is_plural)) {
+                return 1; // Found the keyword as a whole word or plural
+            }
+        }
+
+        i++; // Move to next character.
     }
 
-    return 0;
+    return 0; // Keyword not found.
 }
 
-// Perform linear search: find up to 5 documents matching all include keywords and none of exclude keywords
+// Search for up to 5 documents that match the query.
 Document *LinearSearchDocuments(Document *docs, Query *query) {
     Document *results = NULL;
-    int count = 0; // Track number of results
+    Document *last = NULL;
 
-    // Separate include and exclude keywords
-    int has_include = 0;
-    for (QueryNode *node = query->head; node; node = node->next) {
-        if (!node->exclude) {
-            has_include = 1;
-            break;
-        }
-    }
+    for (Document *doc = docs; doc; doc = doc->next) {
+        int include_ok = 0;
+        int exclude_ok = 1;
 
-    // Iterate through all documents
-    for (Document *doc = docs; doc && count < 5; doc = doc->next) {
-        int keep = 1; // Assume document is a match until proven otherwise
-
-        // Check each query keyword
         for (QueryNode *node = query->head; node; node = node->next) {
             int found = string_contains(doc->title, node->keyword) ||
                         string_contains(doc->body, node->keyword);
 
-            // Exclude keyword found: skip document
             if (node->exclude && found) {
-                keep = 0;
+                exclude_ok = 0;
                 break;
-            }
-            // Include keyword not found (and there are include keywords): skip document
-            if (!node->exclude && has_include && !found) {
-                keep = 0;
-                break;
+            } else if (!node->exclude && found) {
+                include_ok = 1;
             }
         }
 
-        // If document matches criteria, add to results
-        if (keep && (has_include || !query->head)) {
+        if (include_ok && exclude_ok) {
             Document *copy = CreateDocument(doc->id, doc->title, doc->body);
-            if (copy) {
-                copy->links = LinksInit(); // Initialize empty links for copy
-                copy->next = results;
+            if (!copy) continue;
+            copy->links = LinksInit();
+            copy->next = NULL;
+
+            if (!results) {
                 results = copy;
-                count++;
+                last = copy;
+            } else {
+                last->next = copy;
+                last = copy;
             }
         }
     }
@@ -142,18 +172,18 @@ Document *LinearSearchDocuments(Document *docs, Query *query) {
     return results;
 }
 
-// Initialize query history
+// Set up the query history to store up to 3 queries.
 void InitQueryHistory(QueryHistory *history) {
     history->front = 0;
     history->count = 0;
     for (int i = 0; i < HISTORY_CAPACITY; i++) {
-        history->slots[i] = NULL;
+        history->slots[i] = NULL; // Empty slots.
     }
 }
 
-// Add a query to history (circular buffer)
+// Add a query to the history (keeps only the last 3).
 void AddQueryToHistory(QueryHistory *history, Query *query) {
-    // If history is full, free the oldest query
+    // If history is full, remove the oldest query.
     if (history->count == HISTORY_CAPACITY) {
         FreeQuery(history->slots[history->front]);
         history->slots[history->front] = NULL;
@@ -161,18 +191,19 @@ void AddQueryToHistory(QueryHistory *history, Query *query) {
         history->count--;
     }
 
-    // Add new query
+    // Add the new query to the end.
     int index = (history->front + history->count) % HISTORY_CAPACITY;
     history->slots[index] = query;
     history->count++;
 }
 
-// Print query history (oldest to newest)
+// Show the last 3 queries (or "(none)" if none).
 void PrintQueryHistory(const QueryHistory *history) {
     if (history->count == 0) {
         printf("(none)\n");
         return;
     }
+    // Print queries from oldest to newest.
     for (int i = 0; i < history->count; i++) {
         int idx = (history->front + i) % HISTORY_CAPACITY;
         Query *q = history->slots[idx];
@@ -184,7 +215,7 @@ void PrintQueryHistory(const QueryHistory *history) {
     }
 }
 
-// Free query history
+// Free all queries in the history.
 void FreeQueryHistory(QueryHistory *history) {
     for (int i = 0; i < history->count; i++) {
         int idx = (history->front + i) % HISTORY_CAPACITY;
