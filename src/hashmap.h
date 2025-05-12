@@ -16,3 +16,9 @@ typedef struct HashMap{
     HashNode** table;
     int size; //slots in table
 }HashMap;
+
+
+HashMap* create_hashmap(int size);
+unsigned int hash(const char* key, int size);
+
+#endif
