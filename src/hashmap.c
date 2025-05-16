@@ -24,8 +24,8 @@ HashMap* create_hashmap(int size){
 
 //hash function (we will use -> djb2)
 
-unsigned int hash(const char* key, int size){
-        unsigned int hash=5281;
+int hash(const char* key, int size){
+        int hash=5281;
         int c;
 
         while(c=*key++)

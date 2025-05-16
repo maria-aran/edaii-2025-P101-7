@@ -1,24 +1,39 @@
 #ifndef HASHMAP_H
 #define HASHMAP_H
 
- typedef struct HashNode{
-     char* key;
-     DocLinked* docs;
-     struct HashNode* next;
- } HashNode;
+//Structures:
 
+// Hashmap node: key + list of document IDs + next for chaining
+typedef struct HashNode{
+    char* key;
+    DocLinked* docs;
+    struct HashNode* next;
+} HashNode;
+
+// Linked list of document IDs
 typedef struct DocLinked{
-     int doc_id;
-     struct DocLinked* next;
- } DocLinked;
+    int doc_id;
+    struct DocLinked* next;
+} DocLinked;
 
+// Hashmap: array of tables
 typedef struct HashMap{
     HashNode** table;
     int size; //slots in table
 }HashMap;
 
+//Functions
 
+// Create and free
 HashMap* create_hashmap(int size);
-unsigned int hash(const char* key, int size);
+void free_hashmap(HashMap *map);
 
+//Hash function
+int hash(const char* key, int size);
+
+// Core operations
+void put(HashMap *map, const char *key, int doc_id);
+DocLinked *get(HashMap *map, const char *key);
+int contains(HashMap *map, const char *key);
+ 
 #endif
