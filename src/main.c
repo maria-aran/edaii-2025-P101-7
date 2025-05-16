@@ -1,65 +1,106 @@
 #include "dataset.h"
 #include "document.h"
-#include "hashmap.h"
 #include "query.h"
+#include "hashmap.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-// This is the main function that runs the search engine program.
-int main() {
-    // Load all documents from the folder "datasets/wikipedia12".
+#define INDEX_SIZE 10007
+
+int main(void) {
+    // 1) load documents
     Document *docs = LoadDocumentsFromFolder("datasets/wikipedia12");
     if (!docs) {
-        printf("Error: Could not load documents.\n");
-        return 1; // Exit if loading fails.
+        fprintf(stderr, "Error: could not load documents\n");
+        return 1;
     }
 
-    // Lab3: build reverse index
-    HashMap *index = create_hashmap(1000);
-    build_reverse_index(index, docs);
+    // 2) build two reverse‐indexes: one for titles, one for bodies
+    HashMap *titleIdx = create_hashmap(INDEX_SIZE);
+    HashMap *bodyIdx  = create_hashmap(INDEX_SIZE);
+    if (!titleIdx || !bodyIdx) {
+        fprintf(stderr, "Error: could not allocate hashmap\n");
+        FreeDocumentList(docs);
+        return 1;
+    }
 
-    // Create a history to store the last 3 search queries.
+    // index titles
+    for (Document *d = docs; d; d = d->next) {
+        index_text(titleIdx, d->title ? d->title : "", d->id);
+    }
+    // index bodies
+    for (Document *d = docs; d; d = d->next) {
+        index_text(bodyIdx,  d->body  ? d->body  : "", d->id);
+    }
+
+    // 3) init query history
     QueryHistory history;
     InitQueryHistory(&history);
 
-    char input[200];
-    int running = 1;
-
-    while (running) {
+    char line[200];
+    while (1) {
+        // show docs
         printf("\n------- Documents -------\n");
         PrintDocumentList(docs);
+
+        // show last 3 queries
         printf("\n------- Recent Searches -------\n");
         PrintQueryHistory(&history);
-        printf("\nEnter query (or 'exit'): ");
-        if (!fgets(input, sizeof(input), stdin)) break;
-        input[strcspn(input, "\n")] = 0;
-        if (strcmp(input, "exit") == 0) { running = 0; break; }
-        if (input[0] == '\0') { printf("Please enter a query.\n"); continue; }
 
-        int idx;
-        if (sscanf(input, "%d", &idx) == 1) {
-            Document *sel = docs;
-            for (int i = 0; sel && i < idx; i++) sel = sel->next;
-            if (sel) {
-                printf("\n------- Selected Document -------\n");
-                PrintDocument(sel);
-            } else printf("Invalid index.\n");
+        // prompt
+        printf("\nEnter query (or 'exit' to quit, or number to view): ");
+        if (!fgets(line, sizeof(line), stdin))
+            break;
+        line[strcspn(line, "\n")] = '\0';
+        if (strcmp(line, "exit") == 0)
+            break;
+        if (line[0] == '\0') {
+            printf("Please enter something or 'exit'.\n");
             continue;
         }
 
-        Query *q = CreateQuery(input);
-        if (!q) { printf("Invalid query.\n"); continue; }
+        // if number, show document
+        int idx;
+        if (sscanf(line, "%d", &idx) == 1) {
+            Document *cur = docs;
+            for (int i = 0; cur && i < idx; i++)
+                cur = cur->next;
+            if (cur) {
+                printf("\n------- Selected Document -------\n");
+                PrintDocument(cur);
+            } else {
+                printf("Invalid document index.\n");
+            }
+            continue;
+        }
+
+        // otherwise it's a keyword query
+        Query *q = CreateQuery(line);
+        if (!q) {
+            printf("Error: invalid query.\n");
+            continue;
+        }
         AddQueryToHistory(&history, q);
 
+        // 4) search using BOTH indexes
         printf("\n------- Search Results -------\n");
-        Document *results = search_documents_with_index(index, q, docs);
-        if (!results) printf("No matching documents.\n");
-        else { PrintSearchResults(results); FreeDocumentList(results); }
+        Document *results =
+          search_documents_with_index(titleIdx, bodyIdx, q, docs);
+        if (!results) {
+            printf("(no results)\n");
+        } else {
+            PrintSearchResults(results);
+            FreeDocumentList(results);
+        }
+        FreeQuery(q);
     }
 
-    free_hashmap(index);
+    // tear down
     FreeQueryHistory(&history);
     FreeDocumentList(docs);
+    free_hashmap(titleIdx);
+    free_hashmap(bodyIdx);
     return 0;
 }

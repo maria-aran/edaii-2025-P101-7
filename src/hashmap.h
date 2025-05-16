@@ -1,47 +1,47 @@
 #ifndef HASHMAP_H
 #define HASHMAP_H
-#include "document.h"  // for the document struct definition
+
+#include "document.h"
 #include "query.h"
 
-//Structures:
-
-// Linked list of document IDs
-typedef struct DocLinked{
+// linked‐list of document IDs
+typedef struct DocLinked {
     int doc_id;
-    struct DocLinked* next;
+    struct DocLinked *next;
 } DocLinked;
 
-// Hashmap node: key + list of document IDs + next for chaining
-typedef struct HashNode{
-    char* key;
-    DocLinked* docs;
-    struct HashNode* next;
+// one bucket in the hashtable
+typedef struct HashNode {
+    char *key;
+    DocLinked *docs;
+    struct HashNode *next;
 } HashNode;
 
-// Hashmap: array of tables
-typedef struct HashMap{
-    HashNode** table;
-    int size; //slots in table
-}HashMap;
+// the hashtable itself
+typedef struct HashMap {
+    HashNode **table;
+    int size; // number of slots
+} HashMap;
 
-//Functions
+// create & free
+HashMap*          create_hashmap(int size);
+void              free_hashmap(HashMap *m);
 
-// Create and free
-HashMap* create_hashmap(int size);
-void free_hashmap(HashMap *map);
+// djb2 hash
+unsigned int      hash(const char *key, int size);
 
-//Hash function
-int hash(const char* key, int size);
+// build & query
+void              build_reverse_indexes(Document *docs, HashMap *titleIdx, HashMap *bodyIdx);
+Document*         search_documents_with_index(HashMap *titleIdx, HashMap *bodyIdx,  Query *q, Document *allDocs);
 
-// Core operations
-void put(HashMap *map, const char *key, int doc_id);
-DocLinked *get(HashMap *map, const char *key);
-int contains(HashMap *map, const char *key);
- 
-// Build reverse index over all documents
-void build_reverse_index(HashMap *index, Document *docs);
+// normalize in‐place
+void normalize_word(char *w);
 
-// Search documents by Query using reverse index
-Document *search_documents_with_index(HashMap *map, Query *query, Document *all_docs);
+// snippet printer
+void              print_snippet(const char *text, const char *kw);
+
+// persistence
+void              serialize_index(HashMap *m, const char *filename);
+HashMap*          deserialize_index(const char *filename, int slots);
 
 #endif
