@@ -2,6 +2,7 @@
     "files.eol": "\n",
     "files.associations": {
         "dataset.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "hashmap.h": "c"
     },
 }
