@@ -2,13 +2,15 @@
 #include "../src/document.h"
 #include "../src/links.h"
 #include "../src/query.h"
+#include "../src/hashmap.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 // Counter for test numbers
-static int test_number = 0;
+int test_number = 0;
+//lab 1:
 
 // Document Parsing Functionality: Test parsing a document from a file
 void test_document_desserialize() {
@@ -122,6 +124,8 @@ void test_duplicate_links() {
     FreeDocument(doc);
     printf("test %d (duplicate links) passed!\n", ++test_number);
 }
+
+//Lab2:
 
 // Linked List (QueryNode): Test creating a query
 void test_create_query() {
@@ -239,6 +243,41 @@ void test_linear_search() {
     printf("test %d (linear search) passed!\n", ++test_number);
 }
 
+//lab 3:
+
+//Test hashmap search functionallity
+void test_hashmap_search() {
+    // 1) Create a small map
+    HashMap *map = create_hashmap(8);
+    assert(map != NULL);
+    
+    // 2) Insert (word, docID) pairs
+    put_hashmap(map, "cat", 1);
+    put_hashmap(map, "cat", 2);
+    put_hashmap(map, "dog", 3);
+
+    // 3) Retrieve the linked list for "cat"
+    DocLinked *lst = get_list(map, "cat");
+    assert(lst != NULL);
+
+    // 4) Verify that exactly IDs 1 and 2 appear (order doesn’t matter)
+    int saw1 = 0, saw2 = 0, count = 0;
+    for (DocLinked *d = lst; d; d = d->next) {
+        if (d->doc_id == 1) saw1 = 1;
+        if (d->doc_id == 2) saw2 = 1;
+        count++;
+    }
+    assert(count == 2);
+    assert(saw1);
+    assert(saw2);
+
+    // 5) Clean up
+    free_hashmap(map);
+    printf("test %d (hash map search functionality) passed!\n", ++test_number);
+
+}
+
+
 int main() {
     printf("Running tests...\n");
     test_document_desserialize(); // Document parsing
@@ -252,6 +291,8 @@ int main() {
     test_free_query();           // Linked list (QueryNode)
     test_append_query_node();    // Linked list (QueryNode)
     test_linear_search();        // Linear search
+    test_hashmap_search();  //Hashmap search
+
     printf("All tests passed!\n");
     return 0;
 }

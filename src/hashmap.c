@@ -34,7 +34,6 @@ void normalize_word(const char *in, char *out) {
     out[pos] = '\0';
 }
 
-
 //DJB2 hash function 
 unsigned int hash_fn(const char *key, int size) {
     unsigned long h = 5381;
@@ -110,7 +109,7 @@ int doc_exists(DocLinked *list, int id) {
 }
 
 // Insert a (word → docId) mapping into the hashmap.
-void put(HashMap *m, const char *key, int docId) {
+void put_hashmap(HashMap *m, const char *key, int docId) {
     char norm[128];
 
     // Normalize the input word
@@ -175,7 +174,7 @@ void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDoc
                 if (pos > 0) {
                     // terminate the token and insert it
                     buf[pos] = '\0';
-                    put(titleIdx, buf, d->id);
+                    put_hashmap(titleIdx, buf, d->id);
                     pos = 0;  // reset for next token
                 }
                 // if it was the end, break out
@@ -197,7 +196,7 @@ void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDoc
             if (c == ' ' || c == '\t' || c == '\n' || c == '\0') {
                 if (pos > 0) {
                     buf[pos] = '\0';
-                    put(bodyIdx, buf, d->id);
+                    put_hashmap(bodyIdx, buf, d->id);
                     pos = 0;
                 }
                 if (c == '\0') break;

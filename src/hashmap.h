@@ -37,4 +37,11 @@ Document *search_documents_with_index(HashMap *titleIdx, HashMap *bodyIdx, Query
 
 // Print snippet
 void print_snippet(const char *body, Query *q);
+
+//insert and get
+void put_hashmap(HashMap *map, const char *key, int docId);
+DocLinked *get_list(HashMap *map, const char *key);
+
+//free
+void free_hashmap(HashMap *map);
 #endif
