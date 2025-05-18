@@ -277,6 +277,70 @@ void test_hashmap_search() {
 
 }
 
+//Hash map test 1
+
+void test_hashmap_single_insert() {
+        //create a small map of size 10
+        HashMap *m = create_hashmap(10);
+
+        // insert a document of ID 42 under the name apple
+        put_hashmap(m, "apple", 42); 
+
+        //lookup returns a list containing exactly 42
+        DocLinked *lst = get_list(m, "apple");
+        assert(lst != NULL); //prove that it is not null (a key has been inserted)
+        assert(lst->doc_id == 42); //the first and only doc is the one with ID 42
+        assert(lst->next == NULL); //there is no next node (just one inserted)
+
+        free_hashmap(m);
+    printf("test %d (hash map) passed!\n", ++test_number);
+}
+
+//hashmap test 2: proves that eventhough
+void test_hashmap_duplicate_insert() {
+    
+        HashMap *m = create_hashmap(10);
+
+        // insert same doc twice
+        put_hashmap(m, "banana", 7);
+        put_hashmap(m, "banana", 7);
+
+        // prove that it is still only one entry
+        DocLinked *lst = get_list(m, "banana");
+        assert(lst != NULL);
+        assert(lst->doc_id == 7);
+        assert(lst->next == NULL);
+
+        free_hashmap(m);
+        printf("test %d (hash map 2) passed!\n", ++test_number);
+
+}
+
+//hashmap test 3: verifies that a single key can correctly map to multiple document
+void test_hashmap_multiple_keys() {
+
+        HashMap *m = create_hashmap(10);
+
+        // insert two different docs under same word
+        put_hashmap(m, "cherry", 1);
+        put_hashmap(m, "cherry", 2);
+
+        // lookup: should see both 1 and 2 (order doesn't matter)
+        int seen1 = 0, seen2 = 0, count = 0;
+        for (DocLinked *p = get_list(m, "cherry"); p; p = p->next) {
+            if (p->doc_id == 1) seen1 = 1;
+            if (p->doc_id == 2) seen2 = 1;
+            count++;
+        }
+        assert(seen1 && seen2);
+        assert(count == 2);
+
+        free_hashmap(m);
+
+    printf("test %d (hash map 3) passed!\n", ++test_number);
+}
+
+
 
 int main() {
     printf("Running tests...\n");
@@ -291,7 +355,10 @@ int main() {
     test_free_query();           // Linked list (QueryNode)
     test_append_query_node();    // Linked list (QueryNode)
     test_linear_search();        // Linear search
-    test_hashmap_search();  //Hashmap search
+    test_hashmap_search();       //Hashmap search
+    test_hashmap_single_insert();       //hashmap test
+    test_hashmap_duplicate_insert();    //hashmap test
+    test_hashmap_multiple_keys();       //hashmap test
 
     printf("All tests passed!\n");
     return 0;
