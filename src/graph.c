@@ -1,37 +1,79 @@
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include "graph.h"
+#include "graph.h"
+#include <stdlib.h>
+#include <stdio.h>
 
-// //we will use approach 2, using an array of N linked lists, fill it with NULL, 
-// //if the document with ID i has a link to the document with ID=j, we add i to the
-// //linked list stored in array[j]
+DocumentGraph *graph_create(int numdocs) {
+    if (numdocs <= 0) {
+        return NULL;
+    }
+    DocumentGraph *g = malloc(sizeof(DocumentGraph));
+    if (g == NULL) {
+        return NULL;
+    }
+    g->numdocs = numdocs;
+    g->incoming = malloc(sizeof(Node*) * numdocs);
+    if (g->incoming == NULL) {
+        free(g);
+        return NULL;
+    }
+    // initialize all slots to NULL
+    for (int i = 0; i < numdocs; i = i + 1) {
+        g->incoming[i] = NULL;
+    }
+    return g;
+}
 
-// //create the graph
+void graph_add_edge(DocumentGraph *g, int src, int dst) {
+    // guard: graph must exist, dst in range
+    if (g == NULL || dst < 0 || dst >= g->numdocs) {
+        return;
+    }
+    // create a new node for src and prepend onto incoming[dst]
+    Node *n = malloc(sizeof(Node));
+    if (n == NULL) {
+        return;
+    }
+    n->doc_id = src;
+    n->next = g->incoming[dst];
+    g->incoming[dst] = n;
+}
 
-// Graph *creategraph(int numdocs ){
-//     Graph *graph = (Graph*)malloc(sizeof(Graph));
-//     graph->numdocs=numdocs;
-//     graph->adjlist=(Node**)malloc(numdocs*sizeof(Node*));
+int graph_get_indegree(const DocumentGraph *g, int dst) {
+    
+    if (g == NULL || dst < 0 || dst >= g->numdocs) {
+        return 0;
+    }
+    int count = 0;
+    Node *cur = g->incoming[dst];
+    // walk the linked list, counting entries
+    while (cur != NULL) {
+        count = count + 1;
+        cur = cur->next;
+    }
+    return count;
+}
 
-//     for(int i=0; i<numdocs; i++){
-//         graph->adjlist[i]=NULL; //we fill the graph with null identifiers
-//     }
-//     return graph;
-// }
+void print_relevance_score(const DocumentGraph *g, int dst) {
+    if (g == NULL) {
+        return;
+    }
+    int indeg = graph_get_indegree(g, dst);
+    printf("Relevance score: %d\n", indeg);
+}
 
-// int getindegree(Graph *graph, int docID ){
-//     int num=0;
-//     Node *temp = graph->adjlist[docID];
-//     while(temp!=NULL){
-//         num++;
-//         temp=temp->next;
-//     }
-//     return num;
-// }
-
-// void printrelevancescore(Graph *graph){
-//     for(int i=0; i<graph->numdocs; i++){
-//         int indegree=getdegree(graph,i);
-//         printf("The relevance score of the document %d is %d\n",i, indegree);
-//     }
-// }
+void graph_free(DocumentGraph *g) {
+    if (g == NULL) {
+        return;
+    }
+    // free each incoming list
+    for (int i = 0; i < g->numdocs; i = i + 1) {
+        Node *cur = g->incoming[i];
+        while (cur != NULL) {
+            Node *tmp = cur->next;
+            free(cur);
+            cur = tmp;
+        }
+    }
+    free(g->incoming);
+    free(g);
+}

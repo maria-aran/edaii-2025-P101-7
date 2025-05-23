@@ -2,6 +2,8 @@
 #include "document.h"
 #include "query.h"
 #include "hashmap.h"
+#include "graph.h"  
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,71 +11,43 @@
 int main() {
     // Load all documents
     Document *docs = LoadDocumentsFromFolder("datasets/wikipedia12");
-    if (!docs) {
-        fprintf(stderr, "Error loading documents\n");
+    if (docs == NULL) {
+        printf("Error loading documents\n");
+        return 1;
+    }
+    // Find the maximum document ID so we know how big to make the graph
+    int max_id = -1;
+    for (Document *d = docs; d != NULL; d = d->next) {
+        if (d->id > max_id) {
+            max_id = d->id;
+        }
+    }
+
+
+
+    DocumentGraph *graph = graph_create(max_id + 1);
+    if (graph == NULL) {
+        printf("Error: could not create graph\n");
+        FreeDocumentList(docs);
         return 1;
     }
 
-    // Recent-search history
-    QueryHistory history;
-    InitQueryHistory(&history);
-
-    // Build title & body reverse indexes
-    HashMap *titleIdx = create_hashmap(10007);
-    HashMap *bodyIdx  = create_hashmap(20011);
-    build_reverse_indexes(titleIdx, bodyIdx, docs);
-
-    char line[256];
-    while (1) {
-        // ——— Documents ———
-        printf("\n------- Documents -------\n");
-        PrintDocumentList(docs);
-
-        // ——— Recent Searches ———
-        printf("\n------- Recent Searches -------\n");
-        PrintQueryHistory(&history);
-
-        // Prompt
-        printf("\nEnter search (or \"exit\"): ");
-        if (!fgets(line, sizeof(line), stdin)) break;
-        line[strcspn(line, "\n")] = 0;
-        if (strcmp(line, "exit") == 0) break;
-        if (line[0] == '\0') continue;
-
-        // Parse & record
-        Query *q = CreateQuery(line);
-        if (!q) {
-            fprintf(stderr, "Invalid query\n");
-            continue;
+    // Add an edge src→dst for every link in each document
+    for (Document *d = docs; d != NULL; d = d->next) {
+        for (Link *l = d->links->next; l != NULL; l = l->next) {
+            graph_add_edge(graph, d->id, l->id);
         }
-        AddQueryToHistory(&history, q);
-
-        // Indexed search
-        Document *res = search_documents_with_index(
-            titleIdx, bodyIdx, q, docs
-        );
-
-        // ——— Search Results ———
-        printf("------- Search Results -------\n");
-        int idx = 0;
-        for (Document *d = res; d; d = d->next) {
-            // Print every matching document
-            printf("[%d] %s\n", idx++, d->title);
-            print_snippet(d->body, q);
-            printf("\n");
-        }
-        if (idx == 0) {
-            printf("(no matches)\n");
-        }
-
-        // Cleanup this round
-        FreeDocumentList(res);
     }
 
-    //  cleanup
-    FreeQueryHistory(&history);
-    free_hashmap(titleIdx);
-    free_hashmap(bodyIdx);
+    //Print each document with its relevance score (indegree)
+    printf("Document relevance scores:\n");
+    for (Document *d = docs; d != NULL; d = d->next) {
+        printf("[%2d] %-40s  →  ", d->id, d->title ? d->title : "(no title)");
+        print_relevance_score(graph, d->id);
+    }
+
+    // Clean up
+    graph_free(graph);
     FreeDocumentList(docs);
     return 0;
 }
