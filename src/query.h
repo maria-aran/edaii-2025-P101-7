@@ -9,6 +9,7 @@
 typedef struct QueryNode {
     char *keyword;           // The keyword
     int exclude;            // 1 if excluded (e.g., -keyword), 0 otherwise
+    int              or_flag;  // 1 if keyword came from an (a|b|c) group --> OR condition
     struct QueryNode *next; // Next keyword in query
 } QueryNode;
 
@@ -38,5 +39,7 @@ void AddQueryToHistory(QueryHistory *history, Query *query);
 void PrintQueryHistory(const QueryHistory *history);
 // Free query history
 void FreeQueryHistory(QueryHistory *history);
+
+int match_term(const char *text, const char *term);
 
 #endif

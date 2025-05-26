@@ -3,6 +3,7 @@
 #include "../src/links.h"
 #include "../src/query.h"
 #include "../src/hashmap.h"
+#include "../src/graph.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -278,7 +279,6 @@ void test_hashmap_search() {
 }
 
 //Hash map test 1
-
 void test_hashmap_single_insert() {
         //create a small map of size 10
         HashMap *m = create_hashmap(10);
@@ -340,6 +340,28 @@ void test_hashmap_multiple_keys() {
     printf("test %d (hash map 3) passed!\n", ++test_number);
 }
 
+//LAB 4:
+
+// Directed Graph: Test indegree counting
+void test_graph_indegree() {
+    // arrange: create a graph with 5 nodes (0…4)
+    DocumentGraph *g = graph_create(5);
+    assert(g != NULL);
+
+    // act: add three incoming edges into node 1
+    graph_add_edge(g, 0, 1);
+    graph_add_edge(g, 2, 1);
+    graph_add_edge(g, 3, 1);
+
+    // assert: node 1 has indegree 3, others 0
+    assert(graph_get_indegree(g, 1) == 3);
+    assert(graph_get_indegree(g, 0) == 0);
+    assert(graph_get_indegree(g, 2) == 0);
+
+    // clean up
+    graph_free(g);
+    printf("test %d (graph indegree) passed!\n", ++test_number);
+}
 
 
 int main() {
@@ -359,6 +381,7 @@ int main() {
     test_hashmap_single_insert();       //hashmap test
     test_hashmap_duplicate_insert();    //hashmap test
     test_hashmap_multiple_keys();       //hashmap test
+    test_graph_indegree();              //Graph test
 
     printf("All tests passed!\n");
     return 0;

@@ -42,6 +42,9 @@ void print_snippet(const char *body, Query *q);
 void put_hashmap(HashMap *map, const char *key, int docId);
 DocLinked *get_list(HashMap *map, const char *key);
 
+void serialize_reverse_index(HashMap *map, const char *filename);
+HashMap *deserialize_reverse_index(const char *filename, int size);
+
 //free
 void free_hashmap(HashMap *map);
 #endif

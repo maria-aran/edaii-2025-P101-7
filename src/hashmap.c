@@ -210,6 +210,57 @@ void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDoc
     }
 }
 
+void serialize_reverse_index(HashMap *map, const char *filename) {
+    FILE *out = fopen(filename, "w");
+    if (!out) return;
+
+    for (int i = 0; i < map->size; i++) {
+        HashNode *n = map->table[i];
+        while (n) {
+            fprintf(out, "%s", n->key);
+            DocLinked *d = n->docs;
+            while (d) {
+                fprintf(out, " %d", d->doc_id);
+                d = d->next;
+            }
+            fprintf(out, "\n");
+            n = n->next;
+        }
+    }
+
+    fclose(out);
+}
+
+HashMap *deserialize_reverse_index(const char *filename, int size) {
+    HashMap *map = create_hashmap(size);
+    FILE *in = fopen(filename, "r");
+    if (!in) return map;
+
+    char line[1024];
+    while (fgets(line, sizeof(line), in)) {
+        int len = strlen(line);
+        if (len > 0 && line[len-1] == '\n') {
+            line[len-1] = '\0';
+        }
+
+        // First token is the term
+        char *tok = strtok(line, " ");
+        if (!tok) continue;
+        char *term = strdup(tok);
+
+        // Remaining tokens are document IDs
+        while ((tok = strtok(NULL, " "))) {
+            int docId = atoi(tok);
+            put_hashmap(map, term, docId);
+        }
+
+        free(term);
+    }
+
+    fclose(in);
+    return map;
+}
+
 //Lookup one list by key 
 DocLinked *get_list(HashMap *m, const char *key) {
     char norm[128];
@@ -395,7 +446,6 @@ Document *search_documents_with_index(HashMap *titleIdx, HashMap *bodyIdx, Query
 
     return out;
 }
-
 
 
 // Snippet printer(short piece of the body arounf the matching word). If no match, just prints the first 100 chars.

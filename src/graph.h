@@ -31,6 +31,13 @@ void print_relevance_score(const DocumentGraph *g, int dst);
 // free the graph
 void graph_free(DocumentGraph *g);
 
+// Sorts a Document* list by descending indegree in graph g.
+Document *sort_documents_by_relevance(Document *list, DocumentGraph *g);
 
+double *compute_pagerank(DocumentGraph *g, int max_iters, double d, double tol);
+
+// Save/load precomputed relevance scores
+void   save_relevance_scores(const char *filename, double *scores, int num_docs);
+double *load_relevance_scores(const char *filename, int *out_n);
 
 #endif
