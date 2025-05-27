@@ -4,42 +4,50 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_PATH 1000
+
 // Load all documents from a folder into a list.
 Document *LoadDocumentsFromFolder(const char *folderPath) {
-    // Open the folder (e.g., "datasets/wikipedia12").
     DIR *dir = opendir(folderPath);
-    if (!dir) {
-        printf("Error: Cannot open directory %s\n", folderPath);
+    if (dir == NULL) {
+        printf("Error: cannot open \"%s\"\n", folderPath);
         return NULL;
     }
 
-    Document *head = NULL; // Start with an empty list.
-
-    // Read each file in the folder.
+    Document *head = NULL;
     struct dirent *entry;
-    while ((entry = readdir(dir))) {
-        // Only process regular files (not directories).
-        if (entry->d_type == DT_REG) {
-            // Create the full file path (e.g., "datasets/wikipedia12/doc1.txt").
-            char path[1024];
-            snprintf(path, sizeof(path), "%s/%s", folderPath, entry->d_name);
+    char path[MAX_PATH];
 
-            // Load the document from the file.
-            Document *doc = document_desserialize(path);
-            if (doc) {
-                // Add the document to the front of the list.
-                doc->next = head;
-                head = doc;
-            }
+    /* Read each entry in the directory */
+    while ((entry = readdir(dir)) != NULL) {
+
+        // it is a weird entry --> skip
+        if (strcmp(entry->d_name, ".") == 0 ||
+            strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        /* Build the full path: folderPath + "/" + entry->d_name */
+        strcpy(path, folderPath);
+        strcat(path, "/"); //string concatenate
+        strcat(path, entry->d_name);
+
+        /* deserialize whatever is at this path */
+        Document *doc = document_desserialize(path);
+        if (doc != NULL) {
+            /* Prepend the new document to our list */
+            doc->next = head;
+            head = doc;
         }
     }
 
-    closedir(dir); // Close the folder.
-    return head; // Return the list of documents.
+    closedir(dir);
+    return head;
 }
 
 // Free all documents in the list.
 void FreeDocumentList(Document *head) {
+    
     Document *current = head;
     while (current) {
         Document *temp = current; // Save current document.
@@ -65,6 +73,7 @@ void PrintDocumentList(Document *head) {
 
 // Print all search results with title and first 150 characters of body.
 void PrintSearchResults(Document *head) {
+
     Document *current = head;
     int count = 0;
 
@@ -76,7 +85,7 @@ void PrintSearchResults(Document *head) {
     while (current) {
         // Print the result number and title.
         printf("[%d] %s\n", count, current->title ? current->title : "(no title)");
-        printf("Body: ");
+        printf("|Body: ");
         if (current->body) {
             // If body is longer than 150 characters, show only 150 with "...".
             if (strlen(current->body) > 150) {
@@ -85,7 +94,7 @@ void PrintSearchResults(Document *head) {
                 snippet[150] = '\0';
                 printf("%s...\n", snippet);
             } else {
-                printf("%s\n", current->body);
+                printf("%s\n|", current->body);
             }
         } else {
             printf("(no body)\n");

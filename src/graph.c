@@ -3,32 +3,42 @@
 #include <stdio.h>
 
 DocumentGraph *graph_create(int numdocs) {
+
     if (numdocs <= 0) {
         return NULL;
     }
+
     DocumentGraph *g = malloc(sizeof(DocumentGraph));
+
     if (g == NULL) {
         return NULL;
     }
+
     g->numdocs = numdocs;
+
     g->incoming = malloc(sizeof(Node*) * numdocs);
+
     if (g->incoming == NULL) {
         free(g);
         return NULL;
     }
+
     // initialize all slots to NULL
     for (int i = 0; i < numdocs; i = i + 1) {
         g->incoming[i] = NULL;
     }
+
     return g;
 }
 
 void graph_add_edge(DocumentGraph *g, int src, int dst) {
+
     // guard: graph must exist, dst in range
-    if (g == NULL || dst < 0 || dst >= g->numdocs) {
+    if (g == NULL) {
         return;
     }
-    // create a new node for src and prepend onto incoming[dst]
+
+    // create a new node 
     Node *n = malloc(sizeof(Node));
     if (n == NULL) {
         return;
@@ -39,9 +49,13 @@ void graph_add_edge(DocumentGraph *g, int src, int dst) {
 }
 
 int graph_get_indegree(const DocumentGraph *g, int dst) {
-    if (g == NULL || dst < 0 || dst >= g->numdocs) return 0;
+
+    if (g == NULL ) return 0;
+
     int count = 0;
-    Node *cur = g->incoming[dst];
+
+    Node *cur = g->incoming[dst]; //picks out on a dynamic array all nodes pointing into the destination node 
+
     while (cur) {
         count++;
         cur = cur->next;
@@ -50,14 +64,17 @@ int graph_get_indegree(const DocumentGraph *g, int dst) {
 }
 
 void print_relevance_score(const DocumentGraph *g, int dst) {
+
     if (g == NULL) {
         return;
     }
     int indeg = graph_get_indegree(g, dst);
-    printf("Relevance score: %d\n", indeg);
+
+    printf("---Relevance score: %d--\n", indeg);
 }
 
 void graph_free(DocumentGraph *g) {
+
     if (g == NULL) {
         return;
     }
@@ -75,10 +92,12 @@ void graph_free(DocumentGraph *g) {
 }
 
 Document *sort_documents_by_relevance(Document *list, DocumentGraph *g) {
+
     Document *sorted = NULL;         // head of new, sorted list
     Document *current = list;        // node we’re inserting next
 
     while (current) {
+
         Document *next = current->next;    // save remainder of original list
         int curScore = graph_get_indegree(g, current->id);
 
@@ -86,6 +105,7 @@ Document *sort_documents_by_relevance(Document *list, DocumentGraph *g) {
         if (!sorted || graph_get_indegree(g, sorted->id) < curScore) {
             current->next = sorted;
             sorted = current;
+
         } else {
             // Otherwise walk until you find a node whose next has lower score
             Document *p = sorted;
@@ -184,6 +204,7 @@ double *compute_pagerank(DocumentGraph *g, int max_iters, double d, double tol){
  *   …\n
  */
 void save_relevance_scores(const char *filename, double *scores, int num_docs){
+
     FILE *out = fopen(filename, "w");
     if (!out) return;
     // first line = count
@@ -201,6 +222,7 @@ void save_relevance_scores(const char *filename, double *scores, int num_docs){
  * Caller must free() the returned array.
  */
 double *load_relevance_scores(const char *filename, int *out_n){
+    
     FILE *in = fopen(filename, "r");
     if (!in) return NULL;
 

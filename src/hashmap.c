@@ -96,6 +96,7 @@ void free_hashmap(HashMap *map) {
 //  Insert one
 //helper that returns 1 if found, and 0 if it does not exists
 int doc_exists(DocLinked *list, int id) {
+    
     // Walk the list node by node
     while (list) {
         if (list->doc_id == id) {

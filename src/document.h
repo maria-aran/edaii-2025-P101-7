@@ -15,10 +15,13 @@ typedef struct Document {
 
 // Load document from file
 Document *document_desserialize(const char *path);
+
 // Create a new document
 Document *CreateDocument(int id, const char *title, const char *body);
+
 // Free a single document
 void FreeDocument(Document *doc);
+
 // Print a single document
 void PrintDocument(Document *doc);
 
