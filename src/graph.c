@@ -39,15 +39,11 @@ void graph_add_edge(DocumentGraph *g, int src, int dst) {
 }
 
 int graph_get_indegree(const DocumentGraph *g, int dst) {
-    
-    if (g == NULL || dst < 0 || dst >= g->numdocs) {
-        return 0;
-    }
+    if (g == NULL || dst < 0 || dst >= g->numdocs) return 0;
     int count = 0;
     Node *cur = g->incoming[dst];
-    // walk the linked list, counting entries
-    while (cur != NULL) {
-        count = count + 1;
+    while (cur) {
+        count++;
         cur = cur->next;
     }
     return count;
