@@ -1,4 +1,4 @@
-// main.c
+
 #include "document.h"
 #include "dataset.h"
 #include "graph.h"
@@ -16,113 +16,83 @@
 #define PR_ITERS       100
 #define PR_DAMPING     0.85
 #define PR_TOL         1e-6
-#define HISTORY_SIZE   3
 
 int main(void) {
-    // Load and index documents
-    Document *docs     = LoadDocumentsFromFolder("datasets/wikipedia12");
-    HashMap  *titleIdx = create_hashmap(TITLE_MAP_SIZE);
-    HashMap  *bodyIdx  = create_hashmap(BODY_MAP_SIZE);
+    // 1) Load all docs into the list
+    Document *docs = LoadDocumentsFromFolder("datasets/wikipedia12");
+
+    // 2) Init reverse index (hashmaps)
+    HashMap *titleIdx = create_hashmap(TITLE_MAP_SIZE);
+    HashMap *bodyIdx  = create_hashmap(BODY_MAP_SIZE);
     build_reverse_indexes(titleIdx, bodyIdx, docs);
 
-    // Build graph and compute PageRank
-    int             numDocs = 0;
+    // 3) Init the graph
+    //    iterate through all docs and add edges
+    int numDocs = 0;
     for (Document *d = docs; d; d = d->next) ++numDocs;
-    DocumentGraph *g        = graph_create(numDocs);
+    DocumentGraph *g = graph_create(numDocs);
     for (Document *d = docs; d; d = d->next) {
-        for (Link *l = d->links->next; l; l = l->next) {
+        for (Link *l = d->links->next; l; l = l->next)
             graph_add_edge(g, d->id, l->id);
-        }
     }
+    // precompute PageRank scores once
     double *pageRanks = compute_pagerank(g, PR_ITERS, PR_DAMPING, PR_TOL);
 
-    // History of search strings
-    char *history[HISTORY_SIZE] = { NULL };
-    int   h_start = 0, h_count = 0;
-
-    char input[MAX_QUERY_LEN + 1];
-
-    // Interactive search loop
+    char input[MAX_QUERY_LEN+1];
     while (1) {
-        // Print recent searches
-        printf("******* recent searches ********\n");
-        if (h_count == 0) {
-            printf("(none)\n");
-        } else {
-            for (int i = 0; i < h_count; ++i) {
-                int idx = (h_start + i) % HISTORY_SIZE;
-                printf(" * %s *\n", history[idx]);
-            }
-        }
-        printf("********************************\n");
-
-        // Prompt
+        // 4.1) Ask query
         printf("Search: ");
-        if (!fgets(input, sizeof(input), stdin))
-            break;
+        if (!fgets(input, sizeof input, stdin)) break;
         input[strcspn(input, "\n")] = '\0';
-        if (input[0] == '\0')
-            break;
+        if (input[0]=='\0')      break;
 
-        // Add string to history
-        if (h_count == HISTORY_SIZE) {
-            free(history[h_start]);
-            history[h_start] = strdup(input);
-            h_start = (h_start + 1) % HISTORY_SIZE;
-        } else {
-            history[(h_start + h_count) % HISTORY_SIZE] = strdup(input);
-            ++h_count;
-        }
-
-        // Create and free print
+        // 4.2) Search documents using hashmap
         Query *q = CreateQuery(input);
+        Document *hits = search_documents_with_index(titleIdx, bodyIdx, q, docs);
 
-        // Indexed lookup
-        Document *cands = search_documents_with_index(titleIdx, bodyIdx, q, docs);
+        // 4.3) Order documents by PageRank score (highest first)
+        Document *ranked = sort_documents_by_relevance(hits, g);
 
-        // Sort by PageRank
-        Document *ranked = NULL;
-        for (Document *d = cands; d; ) {
-            Document *next = d->next;
-            if (!ranked || pageRanks[d->id] > pageRanks[ranked->id]) {
-                d->next = ranked;
-                ranked  = d;
-            } else {
-                Document *p = ranked;
-                while (p->next && pageRanks[p->next->id] >= pageRanks[d->id]) {
-                    p = p->next;
-                }
-                d->next = p->next;
-                p->next = d;
-            }
-            d = next;
-        }
-
-        // Print top results
         printf("\n-- Top %d by PageRank --\n", MAX_RESULTS);
-        int count = 0;
-        for (Document *d = ranked; d && count < MAX_RESULTS; d = d->next, ++count) {
-            printf(" (%d) %s--\n", count, d->title ? d->title : "(no title)");
+        int printed = 0;
+        for (Document *d = ranked; d && printed < MAX_RESULTS; d = d->next, ++printed) {
+            // 1) Title
+            printf(" [%d] %s\n", printed, d->title ? d->title : "(no title)");
+            // 2) Snippet
             print_snippet(d->body, q);
-            printf("---PageRank: %.6f--\n\n", pageRanks[d->id]);
+            // 3) PageRank score
+            printf("    PageRank: %.6f\n\n", pageRanks[d->id]);
         }
-        printf(" [%d results]\n\n", count);
+        printf(" [%d results]\n\n", printed);
 
-        // Free lists and query
+        // 4.5) Ask user for an index (0..printed-1)
+        printf("Choose document index for details (-1 to new search): ");
+        int idx;
+        if (scanf("%d", &idx)!=1 || idx<0 || idx>=printed) {
+            // flush newline and continue
+            int c; while ((c=getchar())!='\n' && c!=EOF);
+            FreeDocumentList(ranked);
+            FreeQuery(q);
+            continue;
+        }
+        // flush leftover newline
+        while (getchar()!='\n');
+
+        // 4.6) Print all info about the selected document
+        Document *cur = ranked;
+        for (int i = 0; i < idx; i++) cur = cur->next;
+        PrintDocument(cur);
+
+        // cleanup
         FreeDocumentList(ranked);
         FreeQuery(q);
-
     }
 
-    // Cleanup
-    for (int i = 0; i < h_count; ++i) {
-        free(history[(h_start + i) % HISTORY_SIZE]);
-    }
-    graph_free(g);
+    // tear down
     free(pageRanks);
+    graph_free(g);
     free_hashmap(titleIdx);
     free_hashmap(bodyIdx);
     FreeDocumentList(docs);
-
     return EXIT_SUCCESS;
 }
