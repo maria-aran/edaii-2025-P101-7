@@ -32,6 +32,6 @@ void PrintLinks(Link *head) {
         printf("%d", current->id);
         if (current->next) printf(", ");
         current = current->next;
-    }
+    } 
     printf("\n");
 }

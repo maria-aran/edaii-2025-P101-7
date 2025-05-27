@@ -5,7 +5,7 @@
 #include <ctype.h>
 
 // Create a query from a string (e.g., "cute cat -dog").
-Query *CreateQuery(const char *str) {
+Query *CreateQuery(const char *str){
     if (!str) return NULL;
 
     Query *query = malloc(sizeof(Query));
@@ -132,44 +132,142 @@ int string_contains(const char *text, const char *keyword) {
     return 0; // Keyword not found.
 }
 
-// Search for up to 5 documents that match the query.
+// Search for all documents matching the query,
+// with support for OR-groups "(a|b|c)", case-insensitive,
+// and simple singular/plural matching.
 Document *LinearSearchDocuments(Document *docs, Query *query) {
-    Document *results = NULL;
-    Document *last = NULL;
+    // Detect if we have at least one non-excluded keyword
+    int has_include = 0;
+    for (QueryNode *n = query->head; n; n = n->next) {
+        if (!n->exclude) { has_include = 1; break; }
+    }
+    Document *results = NULL, *last = NULL;
 
+   // Examine each document in the list
     for (Document *doc = docs; doc; doc = doc->next) {
-        int include_ok = 0;
-        int exclude_ok = 1;
+        // If there were no include-terms, start with include_ok = 1
+        int include_ok = has_include ? 0 : 1;
+        int exclude_ok = 1;  // no forbidden terms found?
 
+        // Check each query node
         for (QueryNode *node = query->head; node; node = node->next) {
-            int found = string_contains(doc->title, node->keyword) ||
-                        string_contains(doc->body, node->keyword);
+            const char *k = node->keyword;
+
+            // 1) OR-group: keywords like "(foo|bar|baz)"
+            if (!node->exclude && k[0] == '(') {
+                char term[128];
+                int pos = 0, any = 0;
+
+                // parse between '(' and ')', splitting on '|'
+                for (int i = 1; k[i] && k[i] != ')'; i++) {
+                    if (k[i] == '|') {
+                        term[pos] = '\0';
+                        if (match_term(doc->title, term) || match_term(doc->body, term)) {
+                            any = 1;
+                        }
+                        pos = 0;
+                    } else {
+                        term[pos++] = k[i];
+                    }
+                }
+                // check last alternative
+                term[pos] = '\0';
+                if (match_term(doc->title, term) || match_term(doc->body, term)) {
+                    any = 1;
+                }
+
+                // if none matched, reject this document
+                if (!any) {
+                    exclude_ok = 0;
+                    break;
+                }
+                // count as a positive match
+                include_ok = 1;
+                continue;
+            }
+
+            // 2) Normal include/exclude
+            int found = match_term(doc->title, k)
+                     || match_term(doc->body,  k);
 
             if (node->exclude && found) {
-                exclude_ok = 0;
+                exclude_ok = 0;  // forbidden term found
                 break;
             } else if (!node->exclude && found) {
-                include_ok = 1;
+                include_ok = 1;  // required term found
             }
         }
 
+        // If doc passed both tests, append to results
         if (include_ok && exclude_ok) {
             Document *copy = CreateDocument(doc->id, doc->title, doc->body);
-            if (!copy) continue;
-            copy->links = LinksInit();
+            copy->links = LinksInit();  // we only need id/title/body here
             copy->next = NULL;
-
-            if (!results) {
-                results = copy;
-                last = copy;
-            } else {
+            if (last) {
                 last->next = copy;
-                last = copy;
+            } else {
+                results = copy;
             }
+            last = copy;
         }
     }
 
     return results;
+}
+
+//Helper to not take into account upper and lower cases and plurals or singulars
+int match_term(const char *text, const char *term) {
+    int text_len = strlen(text);
+    int term_len = strlen(term);
+
+    // 1) Try exact term (case‐insensitive)
+    for (int i = 0; i + term_len <= text_len; i++) {
+        int j;
+        for (j = 0; j < term_len; j++) {
+            if (tolower((unsigned char)text[i + j]) 
+                != tolower((unsigned char)term[j])) {
+                break;
+            }
+        }
+        if (j == term_len) {
+            return 1;
+        }
+    }
+
+    // 2) If term ends in 's', also try without the 's'
+    if (term_len > 1 && (term[term_len - 1] == 's' || term[term_len - 1] == 'S')) {
+        int base_len = term_len - 1;
+        for (int i = 0; i + base_len <= text_len; i++) {
+            int j;
+            for (j = 0; j < base_len; j++) {
+                if (tolower((unsigned char)text[i + j]) 
+                    != tolower((unsigned char)term[j])) {
+                    break;
+                }
+            }
+            if (j == base_len) {
+                return 1;
+            }
+        }
+    }
+    // 3) Otherwise, try term + 's'
+    else {
+        int new_len = term_len + 1;
+        for (int i = 0; i + new_len <= text_len; i++) {
+            int j;
+            for (j = 0; j < term_len; j++) {
+                if (tolower((unsigned char)text[i + j]) 
+                    != tolower((unsigned char)term[j])) {
+                    break;
+                }
+            }
+            if (j == term_len && tolower((unsigned char)text[i + term_len]) == 's') {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
 }
 
 // Set up the query history to store up to 3 queries.

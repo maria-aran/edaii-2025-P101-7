@@ -3,6 +3,7 @@
     "files.associations": {
         "dataset.h": "c",
         "string.h": "c",
-        "hashmap.h": "c"
+        "hashmap.h": "c",
+        "document.h": "c"
     },
 }

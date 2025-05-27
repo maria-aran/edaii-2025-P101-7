@@ -2,13 +2,16 @@
 #include "../src/document.h"
 #include "../src/links.h"
 #include "../src/query.h"
+#include "../src/hashmap.h"
+#include "../src/graph.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 // Counter for test numbers
-static int test_number = 0;
+int test_number = 0;
+//lab 1:
 
 // Document Parsing Functionality: Test parsing a document from a file
 void test_document_desserialize() {
@@ -122,6 +125,8 @@ void test_duplicate_links() {
     FreeDocument(doc);
     printf("test %d (duplicate links) passed!\n", ++test_number);
 }
+
+//Lab2:
 
 // Linked List (QueryNode): Test creating a query
 void test_create_query() {
@@ -239,6 +244,126 @@ void test_linear_search() {
     printf("test %d (linear search) passed!\n", ++test_number);
 }
 
+//lab 3:
+
+//Test hashmap search functionallity
+void test_hashmap_search() {
+    // 1) Create a small map
+    HashMap *map = create_hashmap(8);
+    assert(map != NULL);
+    
+    // 2) Insert (word, docID) pairs
+    put_hashmap(map, "cat", 1);
+    put_hashmap(map, "cat", 2);
+    put_hashmap(map, "dog", 3);
+
+    // 3) Retrieve the linked list for "cat"
+    DocLinked *lst = get_list(map, "cat");
+    assert(lst != NULL);
+
+    // 4) Verify that exactly IDs 1 and 2 appear (order doesn’t matter)
+    int saw1 = 0, saw2 = 0, count = 0;
+    for (DocLinked *d = lst; d; d = d->next) {
+        if (d->doc_id == 1) saw1 = 1;
+        if (d->doc_id == 2) saw2 = 1;
+        count++;
+    }
+    assert(count == 2);
+    assert(saw1);
+    assert(saw2);
+
+    // 5) Clean up
+    free_hashmap(map);
+    printf("test %d (hash map search functionality) passed!\n", ++test_number);
+
+}
+
+//Hash map test 1
+void test_hashmap_single_insert() {
+        //create a small map of size 10
+        HashMap *m = create_hashmap(10);
+
+        // insert a document of ID 42 under the name apple
+        put_hashmap(m, "apple", 42); 
+
+        //lookup returns a list containing exactly 42
+        DocLinked *lst = get_list(m, "apple");
+        assert(lst != NULL); //prove that it is not null (a key has been inserted)
+        assert(lst->doc_id == 42); //the first and only doc is the one with ID 42
+        assert(lst->next == NULL); //there is no next node (just one inserted)
+
+        free_hashmap(m);
+    printf("test %d (hash map) passed!\n", ++test_number);
+}
+
+//hashmap test 2: proves that eventhough
+void test_hashmap_duplicate_insert() {
+    
+        HashMap *m = create_hashmap(10);
+
+        // insert same doc twice
+        put_hashmap(m, "banana", 7);
+        put_hashmap(m, "banana", 7);
+
+        // prove that it is still only one entry
+        DocLinked *lst = get_list(m, "banana");
+        assert(lst != NULL);
+        assert(lst->doc_id == 7);
+        assert(lst->next == NULL);
+
+        free_hashmap(m);
+        printf("test %d (hash map 2) passed!\n", ++test_number);
+
+}
+
+//hashmap test 3: verifies that a single key can correctly map to multiple document
+void test_hashmap_multiple_keys() {
+
+        HashMap *m = create_hashmap(10);
+
+        // insert two different docs under same word
+        put_hashmap(m, "cherry", 1);
+        put_hashmap(m, "cherry", 2);
+
+        // lookup: should see both 1 and 2 (order doesn't matter)
+        int seen1 = 0, seen2 = 0, count = 0;
+        for (DocLinked *p = get_list(m, "cherry"); p; p = p->next) {
+            if (p->doc_id == 1) seen1 = 1;
+            if (p->doc_id == 2) seen2 = 1;
+            count++;
+        }
+        assert(seen1 && seen2);
+        assert(count == 2);
+
+        free_hashmap(m);
+
+    printf("test %d (hash map 3) passed!\n", ++test_number);
+}
+
+//LAB 4:
+
+// Directed Graph: Test indegree counting
+void test_graph_indegree() {
+    // arrange: create a graph with 5 nodes (0…4)
+    DocumentGraph *g = graph_create(5);
+    assert(g != NULL);
+
+    // act: add three incoming edges into node 1
+    graph_add_edge(g, 0, 1);
+    graph_add_edge(g, 2, 1);
+    graph_add_edge(g, 3, 1);
+
+    // assert: node 1 has indegree 3, others 0
+    assert(graph_get_indegree(g, 1) == 3);
+    assert(graph_get_indegree(g, 0) == 0);
+    assert(graph_get_indegree(g, 2) == 0);
+
+    // clean up
+    graph_free(g);
+    printf("test %d (graph indegree) passed!\n", ++test_number);
+}
+
+
 int main() {
     printf("Running tests...\n");
     test_document_desserialize(); // Document parsing
@@ -252,6 +377,12 @@ int main() {
     test_free_query();           // Linked list (QueryNode)
     test_append_query_node();    // Linked list (QueryNode)
     test_linear_search();        // Linear search
+    test_hashmap_search();       //Hashmap search
+    test_hashmap_single_insert();       //hashmap test
+    test_hashmap_duplicate_insert();    //hashmap test
+    test_hashmap_multiple_keys();       //hashmap test
+    test_graph_indegree();              //Graph test
+
     printf("All tests passed!\n");
     return 0;
 }

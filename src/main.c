@@ -1,98 +1,98 @@
-#include "dataset.h"
+
 #include "document.h"
+#include "dataset.h"
+#include "graph.h"
+#include "hashmap.h"
 #include "query.h"
+#include "links.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-// This is the main function that runs the search engine program.
-int main() {
-    // Load all documents from the folder "datasets/wikipedia12".
+#define TITLE_MAP_SIZE 100000
+#define BODY_MAP_SIZE  200000
+#define MAX_QUERY_LEN  200
+#define MAX_RESULTS    5
+#define PR_ITERS       100
+#define PR_DAMPING     0.85
+#define PR_TOL         1e-6
+
+int main(void) {
+    // 1) Load all docs into the list
     Document *docs = LoadDocumentsFromFolder("datasets/wikipedia12");
-    if (!docs) {
-        printf("Error: Could not load documents.\n");
-        return 1; // Exit if loading fails.
+
+    // 2) Init reverse index (hashmaps)
+    HashMap *titleIdx = create_hashmap(TITLE_MAP_SIZE);
+    HashMap *bodyIdx  = create_hashmap(BODY_MAP_SIZE);
+    build_reverse_indexes(titleIdx, bodyIdx, docs);
+
+    // 3) Init the graph
+    //    iterate through all docs and add edges
+    int numDocs = 0;
+    for (Document *d = docs; d; d = d->next) ++numDocs;
+    DocumentGraph *g = graph_create(numDocs);
+    for (Document *d = docs; d; d = d->next) {
+        for (Link *l = d->links->next; l; l = l->next)
+            graph_add_edge(g, d->id, l->id);
     }
+    // precompute PageRank scores once
+    double *pageRanks = compute_pagerank(g, PR_ITERS, PR_DAMPING, PR_TOL);
 
-    // Create a history to store the last 3 search queries.
-    QueryHistory history;
-    InitQueryHistory(&history);
-
-    // Buffer to hold user input (up to 200 characters).
-    char input[200];
+    char input[MAX_QUERY_LEN+1];
     while (1) {
-        // Print a line to separate sections for clarity.
-        printf("\n------- Documents -------\n");
-        printf("Available documents:\n");
-        // Show all document titles with numbers (e.g., [0] Cats).
-        PrintDocumentList(docs);
+        // 4.1) Ask query
+        printf("Search: ");
+        if (!fgets(input, sizeof input, stdin)) break;
+        input[strcspn(input, "\n")] = '\0';
+        if (input[0]=='\0')      break;
 
-        // Show the last 3 searches (or "(none)" if none).
-        printf("\n------- Recent Searches -------\n");
-        PrintQueryHistory(&history);
+        // 4.2) Search documents using hashmap
+        Query *q = CreateQuery(input);
+        Document *hits = search_documents_with_index(titleIdx, bodyIdx, q, docs);
 
-        // Ask the user to type a query, a number, or "exit".
-        printf("\nEnter query (or 'exit' to quit, or number to view document): ");
-        if (!fgets(input, sizeof(input), stdin)) {
-            break; // Exit if input fails (e.g., Ctrl+D).
+        // 4.3) Order documents by PageRank score (highest first)
+        Document *ranked = sort_documents_by_relevance(hits, g);
+
+        printf("\n-- Top %d by PageRank --\n", MAX_RESULTS);
+        int printed = 0;
+        for (Document *d = ranked; d && printed < MAX_RESULTS; d = d->next, ++printed) {
+            // 1) Title
+            printf(" [%d] %s\n", printed, d->title ? d->title : "(no title)");
+            // 2) Snippet
+            print_snippet(d->body, q);
+            // 3) PageRank score
+            printf("    PageRank: %.6f\n\n", pageRanks[d->id]);
         }
-        input[strcspn(input, "\n")] = 0; // Remove the newline character.
+        printf(" [%d results]\n\n", printed);
 
-        // If the user types "exit", quit the program.
-        if (strcmp(input, "exit") == 0) {
-            break;
-        }
-
-        // If the input is empty (just Enter), skip to the next loop.
-        if (input[0] == '\0') {
-            printf("Please enter a query, number, or 'exit'.\n");
+        // 4.5) Ask user for an index (0..printed-1)
+        printf("Choose document index for details (-1 to new search): ");
+        int idx;
+        if (scanf("%d", &idx)!=1 || idx<0 || idx>=printed) {
+            // flush newline and continue
+            int c; while ((c=getchar())!='\n' && c!=EOF);
+            FreeDocumentList(ranked);
+            FreeQuery(q);
             continue;
         }
+        // flush leftover newline
+        while (getchar()!='\n');
 
-        // Check if the user typed a number (to view a document).
-        int doc_index;
-        if (sscanf(input, "%d", &doc_index) == 1) {
-            Document *selected = docs;
-            int i = 0;
-            // Find the document with the given index.
-            while (selected && i < doc_index) {
-                selected = selected->next;
-                i++;
-            }
-            if (selected) {
-                // Show the full document details.
-                printf("\n------- Selected Document -------\n");
-                PrintDocument(selected);
-            } else {
-                printf("Invalid document index.\n");
-            }
-            continue;
-        }
+        // 4.6) Print all info about the selected document
+        Document *cur = ranked;
+        for (int i = 0; i < idx; i++) cur = cur->next;
+        PrintDocument(cur);
 
-        // Create a query from the user’s input (e.g., "cat -dog").
-        Query *query = CreateQuery(input);
-        if (!query) {
-            printf("Error: Invalid query.\n");
-            continue;
-        }
-
-        // Add the query to the history (keeps last 3).
-        AddQueryToHistory(&history, query);
-
-        // Search for documents matching the query.
-        printf("\n------- Search Results -------\n");
-        Document *results = LinearSearchDocuments(docs, query);
-        if (!results) {
-            printf("No matching documents found.\n");
-        } else {
-            // Show up to 5 matching documents with title and body snippet.
-            PrintSearchResults(results);
-            FreeDocumentList(results); // Free the results list.
-        }
+        // cleanup
+        FreeDocumentList(ranked);
+        FreeQuery(q);
     }
 
-    // Free memory before exiting.
-    FreeQueryHistory(&history);
+    // tear down
+    free(pageRanks);
+    graph_free(g);
+    free_hashmap(titleIdx);
+    free_hashmap(bodyIdx);
     FreeDocumentList(docs);
-    return 0;
+    return EXIT_SUCCESS;
 }
