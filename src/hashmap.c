@@ -7,32 +7,33 @@
 
 //Do not take into account lower/upper cases, punctuation..
 void normalize_word(const char *in, char *out) {
-
-    int pos = 0;
-    char c;
-
-    // while c isnt the null-terminator
-    while ((c = *in) != '\0') {
-        if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) { //And is either number, a letter(either upper or lower case)
-            break;
-        }
-        in++; //go to the next letter
-    }
-
-    // Copy letters/digits
-    while ((c = *in) != '\0') {
-        if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
-            out[pos++] = tolower((unsigned char)c); 
-            in++;
-        } else {
-            // stop as soon as we see punctuation or whitespace
-            break;
+    int j = 0;
+    // copy only alphanumeric, in lowercase
+    for (const char *p = in; *p; ++p) {
+        if (isalnum((unsigned char)*p)) {
+            out[j++] = tolower((unsigned char)*p);
         }
     }
+    out[j] = '\0';
 
-    // Null-terminate the new string
-    out[pos] = '\0';
-}
+
+    // Strip trailing 's' for simple plural handling
+    if (j > 1 && out[j-1] == 's') {
+        out[j-1] = '\0';
+
+        }
+
+        // Null-terminate the output
+        out[j] = '\0';
+
+        // Strip trailing 's' for basic plural normalization (e.g., "cats" -> "cat")
+        int len = j;
+        if (len > 1 && out[len - 1] == 's') {
+            out[len - 1] = '\0';
+        }
+    }
+
+
 
 //DJB2 hash function 
 unsigned int hash_fn(const char *key, int size) {
@@ -515,5 +516,4 @@ void print_snippet(const char *body, Query *q){
     buf[pos] = '\0';  // null-terminate
     printf("%s\n", buf);
 }
-
 

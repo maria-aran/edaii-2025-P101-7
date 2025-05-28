@@ -47,4 +47,8 @@ HashMap *deserialize_reverse_index(const char *filename, int size);
 
 //free
 void free_hashmap(HashMap *map);
+
+//helper:
+void normalize_word(const char *in, char *out);
+
 #endif

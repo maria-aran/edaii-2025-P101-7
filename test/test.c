@@ -68,7 +68,7 @@ void test_link_documents() {
     assert(doc1->next != NULL); // Check link exists
     assert(doc1->next->id == 2); // Check linked document ID
     assert(doc2->next == NULL); // Check no further links
-    FreeDocumentList(doc1);
+    FreeDocument(doc1);
     printf("test %d (linking documents) passed!\n", ++test_number);
 }
 
@@ -88,18 +88,18 @@ void test_create_link() {
 // Links Linked List: Test adding a link
 void test_add_link() {
     Document *doc = CreateDocument(1, "Cats", "I love cats");
-    Link *link1 = malloc(sizeof(Link));
-    link1->id = 2;
-    link1->next = NULL;
-    doc->links->next = link1;
-    Link *link2 = malloc(sizeof(Link));
-    link2->id = 3;
-    link2->next = doc->links->next;
-    doc->links->next = link2;
-    assert(doc->links->next != NULL); // Check first link
-    assert(doc->links->next->id == 3); // Check first link ID
-    assert(doc->links->next->next != NULL); // Check second link
-    assert(doc->links->next->next->id == 2); // Check second link ID
+
+    // use LinksAppend to add two links
+    LinksAppend(doc->links, 2);
+    LinksAppend(doc->links, 3);
+
+    // now the list should be: head -> 2 -> 3
+    assert(doc->links->next != NULL);              // first link exists
+    assert(doc->links->next->id == 2);             // first link ID is 2
+
+    assert(doc->links->next->next != NULL);        // second link exists
+    assert(doc->links->next->next->id == 3);       // second link ID is 3
+
     FreeDocument(doc);
     printf("test %d (adding link) passed!\n", ++test_number);
 }
@@ -204,7 +204,7 @@ void test_linear_search() {
     assert(found_2); // Should include "dogs"
     assert(found_3); // Should include "pets"
     assert(found_4); // Should include "more cats"
-    FreeDocumentList(results);
+    FreeDocument(results);
     FreeQuery(q);
 
     // Test query "cat dog"
@@ -219,7 +219,7 @@ void test_linear_search() {
         current = current->next;
     }
     assert(cat_dog_found_3); // Should include "pets"
-    FreeDocumentList(results);
+    FreeDocument(results);
     FreeQuery(q);
 
     // Test query "cat -dog"
@@ -237,10 +237,10 @@ void test_linear_search() {
     assert(cat_not_dog_found_1); // Should include "cats"
     assert(cat_not_dog_found_4); // Should include "more cats"
     assert(cat_not_dog_count == 2); // Exactly two matches
-    FreeDocumentList(results);
+    FreeDocument(results);
     FreeQuery(q);
 
-    FreeDocumentList(doc1);
+    FreeDocument(doc1);
     printf("test %d (linear search) passed!\n", ++test_number);
 }
 

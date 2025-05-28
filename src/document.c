@@ -1,7 +1,22 @@
 #include "document.h"
+#include "links.h"
+
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
+#include <ctype.h> 
+
+#define LINE_BUF_SIZE 4096
+#define BODY_BUF_SIZE 262144
+#define LINK_BUF_SIZE   64
+
+
+#define LBRACK  '['
+#define RBRACK  ']'
+#define LPAR    '('
+#define RPAR    ')'
 
 #define MAX_BODY 4000
 
@@ -97,101 +112,118 @@ void PrintDocument(Document *doc) {
         return;
     }
 
-    printf("---Document ID: %d---\n", doc->id);
+    printf(" ▏Document ID: [%d]      ▏\n", doc->id);
 
-    printf("---Title: %s---\n", doc->title ? doc->title : "(no title)");
-    printf("---Links: ");
+    printf(" ▏Title: %s       ▏\n", doc->title ? doc->title : "(no title)");
+    printf("Links: ");
+
     PrintLinks(doc->links);
-    printf("---");
-    printf("---Body: ");
+
+    printf("Body: ");
     if (doc->body) {
         // Print first 150 chars of body with ellipsis if longer
         if (strlen(doc->body) > 150) {
             char snippet[151];
             strncpy(snippet, doc->body, 150);
             snippet[150] = '\0';
-            printf("%s...\n", snippet);
+            printf("%s\n", snippet);
         } else {
             printf("%s\n", doc->body);
         }
     } else {
         printf("(no body)\n");
     }
-    printf("---");
+    printf("\n");
 }
 
-// Parse a document from a file --> extract structured data
-Document *document_desserialize(const char *path) {
-    
-    FILE *file = fopen(path, "r");
-    if (!file) return NULL;
+//get the corresponding information out of the datasets and classify it
+Document *document_desserialize(char *path) {
+    FILE *f = fopen(path, "r");
+    assert(f != NULL);
 
-    // Read document ID
-    int id;
-    if (fscanf(file, "%d\n", &id) != 1) {
-        fclose(file);
-        return NULL;
+    /* allocate Document */
+    Document *document = malloc(sizeof(Document));
+    assert(document != NULL);
+
+    /* scratch buffer for id/title/body */
+    char buffer[BODY_BUF_SIZE];
+    int  bufferIdx = 0;
+    int  ch;
+
+    /* 1) parse ID */
+    while ((ch = fgetc(f)) != EOF && ch != '\n') {
+        assert(bufferIdx < BODY_BUF_SIZE);
+        buffer[bufferIdx++] = (char)ch;
     }
+    assert(bufferIdx < BODY_BUF_SIZE);
+    buffer[bufferIdx] = '\0';
+    document->id = atoi(buffer);
 
-    // Read title (first line after ID)
-    char title[1024] = "";
-    if (!fgets(title, sizeof(title), file)) {
-        fclose(file);
-        return NULL;
+    /* 2) parse Title */
+    bufferIdx = 0;
+    while ((ch = fgetc(f)) != EOF && ch != '\n') {
+        assert(bufferIdx < BODY_BUF_SIZE);
+        buffer[bufferIdx++] = (char)ch;
     }
+    assert(bufferIdx < BODY_BUF_SIZE);
+    buffer[bufferIdx] = '\0';
+    document->title = strdup(buffer);
 
-    for (int i = 0; title[i] != '\0'; i++) { //remove newline, if there's any 
-        if (title[i] == '\n') {
-            title[i] = '\0';
-            break;
+    /* 3) parse Body + extract links */
+    bufferIdx       = 0;
+    char linkBuffer[LINK_BUF_SIZE];
+    int  linkBufferIdx = 0;
+    bool parsingLink   = false;
+    Link *links       = LinksInit();
+
+    while ((ch = fgetc(f)) != EOF) {
+        /* always copy every char into body */
+        assert(bufferIdx < BODY_BUF_SIZE);
+        buffer[bufferIdx++] = (char)ch;
+
+        if (parsingLink) {
+            if (ch == ')') {
+                /* end of link ID */
+                parsingLink = false;
+                assert(linkBufferIdx < LINK_BUF_SIZE);
+                linkBuffer[linkBufferIdx] = '\0';
+                int linkId = atoi(linkBuffer);
+                LinksAppend(links, linkId);
+                linkBufferIdx = 0;
+            }
+            else if (isdigit(ch)) {
+                /* accumulate only digits */
+                assert(linkBufferIdx < LINK_BUF_SIZE);
+                linkBuffer[linkBufferIdx++] = (char)ch;
+            }
+            /* else skip any other char (like the '(') */
         }
-    }
-
-    // Read body (everything else)
-    char body[4096] = ""; // Reasonable buffer for body
-    char line[1024];
-
-    /* Read every character from file into body until EOF or buffer full */
-    int pos = 0;
-    int c;
-
-    while ((c = fgetc(file)) != EOF && pos < MAX_BODY - 1) {
-        body[pos++] = (char)c;
-    }
-
-    body[pos] = '\0';  /* Null-terminate the string */
-
-    // Create document
-    Document *doc = CreateDocument(id, title, body);
-    if (!doc) {
-        fclose(file);
-        return NULL;
-    }
-
-    // Rewind file to parse links
-    fseek(file, 0, SEEK_SET);
-    fscanf(file, "%d\n", &id); // Skip ID
-    fgets(line, sizeof(line), file); // Skip title
-
-    // Parse links
-    while (fgets(line, sizeof(line), file)) {
-        char *link_start = strchr(line, '[');
-        char *link_end = link_start ? strchr(link_start, ']') : NULL;
-        char *id_start = link_end ? strchr(link_end, '(') : NULL;
-        char *id_end = id_start ? strchr(id_start, ')') : NULL;
-
-        if (link_start && link_end && id_start && id_end && id_start == link_end + 1) {
-            int link_id;
-            if (sscanf(id_start + 1, "%d", &link_id) == 1) {
-                // Add link to links list
-                Link *new_link = malloc(sizeof(Link));
-                new_link->id = link_id;
-                new_link->next = doc->links->next;
-                doc->links->next = new_link;
+        else if (ch == ']') {
+            /* peek ahead: only start link parsing if we really see "(digits)" */
+            int peek = fgetc(f);
+            if (peek == '(') {
+                /* copy the '(' into body too */
+                assert(bufferIdx < BODY_BUF_SIZE);
+                buffer[bufferIdx++] = '(';
+                parsingLink = true;
+            } else if (peek != EOF) {
+                /* not a link: put it back so body copy is correct */
+                ungetc(peek, f);
             }
         }
     }
 
-    fclose(file);
-    return doc;
+    /* 4) finalize body string */
+    assert(bufferIdx < BODY_BUF_SIZE);
+    buffer[bufferIdx] = '\0';
+    document->body      = malloc(bufferIdx + 1);
+    assert(document->body != NULL);
+    strcpy(document->body, buffer);
+
+    /* 5) attach links & default relevance */
+    document->links     = links;
+    document->relevance = 0.0;
+
+    fclose(f);
+    return document;
 }

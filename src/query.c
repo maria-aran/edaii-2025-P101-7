@@ -1,8 +1,71 @@
 #include "query.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <assert.h>
+
+//init query
+Query* queryInit(const char *str) {
+    if (!str) return NULL;
+    Query *q = malloc(sizeof(*q));
+    assert(q);
+    q->head = NULL;
+
+    char *input = strdup(str);
+    assert(input);
+    char *p = input;
+
+    while (*p) {
+        // skip spaces
+        while (isspace((unsigned char)*p)) p++;
+        if (!*p) break;
+
+        int exclude = 0;
+        if (*p == '-') { exclude = 1; p++; }
+
+        // start of token
+        char *start = p;
+        while (*p && !isspace((unsigned char)*p)) p++;
+        int len = p - start;
+        if (len <= 0) continue;
+
+        char *kw = malloc(len+1);
+        assert(kw);
+        strncpy(kw, start, len);
+        kw[len] = '\0';
+
+        // ignore lone dashes
+        if (!isalnum((unsigned char)kw[0])) {
+            free(kw);
+            continue;
+        }
+
+        // prepend node
+        QueryNode *n = malloc(sizeof(*n));
+        assert(n);
+        n->keyword = kw;
+        n->exclude = exclude;
+        n->next    = q->head;
+        q->head    = n;
+    }
+
+    free(input);
+    return q;
+}
+
+// Free a Query and all its nodes
+void FreeQuery(Query *q) {
+    if (!q) return;
+    for (QueryNode *cur = q->head; cur; ) {
+        QueryNode *nx = cur->next;
+        free(cur->keyword);
+        free(cur);
+        cur = nx;
+    }
+    free(q);
+}
 
 // Create a query from a string (e.g., "cute cat -dog").
 Query *CreateQuery(const char *str){
@@ -73,19 +136,6 @@ Query *CreateQuery(const char *str){
 
     free(input);
     return query;
-}
-
-// Free a query and all its keywords.
-void FreeQuery(Query *query) {
-    if (!query) return;
-    QueryNode *current = query->head;
-    while (current) {
-        QueryNode *temp = current;
-        current = current->next;
-        free(temp->keyword); // Free the keyword string.
-        free(temp); // Free the node.
-    }
-    free(query); // Free the query.
 }
 
 // Check if a text contains a keyword as a whole word (case-sensitive).
@@ -201,8 +251,8 @@ Document *LinearSearchDocuments(Document *docs, Query *query) {
         // If doc passed both tests, append to results
         if (include_ok && exclude_ok) {
             Document *copy = CreateDocument(doc->id, doc->title, doc->body);
-            copy->links = LinksInit();  // we only need id/title/body here
-            copy->next = NULL;
+            copy->links = LinksInit();  // ← links list is re-initialized empty!
+            copy->next  = NULL;
             if (last) {
                 last->next = copy;
             } else {
@@ -268,58 +318,4 @@ int match_term(const char *text, const char *term) {
     }
 
     return 0;
-}
-
-// Set up the query history to store up to 3 queries.
-void InitQueryHistory(QueryHistory *history) {
-    history->front = 0;
-    history->count = 0;
-    for (int i = 0; i < HISTORY_CAPACITY; i++) {
-        history->slots[i] = NULL; // Empty slots.
-    }
-}
-
-// Add a query to the history (keeps only the last 3).
-void AddQueryToHistory(QueryHistory *history, Query *query) {
-    // If history is full, remove the oldest query.
-    if (history->count == HISTORY_CAPACITY) {
-        FreeQuery(history->slots[history->front]);
-        history->slots[history->front] = NULL;
-        history->front = (history->front + 1) % HISTORY_CAPACITY;
-        history->count--;
-    }
-
-    // Add the new query to the end.
-    int index = (history->front + history->count) % HISTORY_CAPACITY;
-    history->slots[index] = query;
-    history->count++;
-}
-
-// Show the last 3 queries (or "(none)" if none).
-void PrintQueryHistory(const QueryHistory *history) {
-    if (history->count == 0) {
-        printf("(none)\n");
-        return;
-    }
-    // Print queries from oldest to newest.
-    for (int i = 0; i < history->count; i++) {
-        int idx = (history->front + i) % HISTORY_CAPACITY;
-        Query *q = history->slots[idx];
-        for (QueryNode *node = q->head; node; node = node->next) {
-            printf("%s%s", node->exclude ? "-" : "", node->keyword);
-            if (node->next) printf(" ");
-        }
-        printf("\n");
-    }
-}
-
-// Free all queries in the history.
-void FreeQueryHistory(QueryHistory *history) {
-    for (int i = 0; i < history->count; i++) {
-        int idx = (history->front + i) % HISTORY_CAPACITY;
-        FreeQuery(history->slots[idx]);
-        history->slots[idx] = NULL;
-    }
-    history->front = 0;
-    history->count = 0;
 }

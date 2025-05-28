@@ -4,10 +4,15 @@
 
 // Initialize an empty links list with a dummy head node
 Link *LinksInit() {
+
     Link *head = malloc(sizeof(Link));
+
     if (!head) return NULL;
+
     head->id = -1; // Invalid ID for dummy node
+
     head->next = NULL;
+
     return head;
 }
 
@@ -20,6 +25,22 @@ void FreeLinks(Link *head) {
         free(temp);
     }
 }
+
+// Append a new link with given id to the end of the list
+void LinksAppend(Link *head, int id) {
+    Link *new_link = malloc(sizeof(Link));
+    if (!new_link) return;      // allocation failed → no-op
+    new_link->id   = id;
+    new_link->next = NULL;
+
+    // walk to the end of the list
+    Link *cur = head;
+    while (cur->next) {
+        cur = cur->next;
+    }
+    cur->next = new_link;
+}
+
 
 // Print all link IDs
 void PrintLinks(Link *head) {

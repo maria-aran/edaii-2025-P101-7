@@ -14,4 +14,7 @@ void FreeLinks(Link *head);
 // Print all link IDs
 void PrintLinks(Link *head);
 
+void LinksAppend(Link *head, int id);
+
+
 #endif

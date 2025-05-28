@@ -3,6 +3,8 @@
 
 #include "document.h"
 
+
+
 #define HISTORY_CAPACITY 3
 
 // Query node: holds a keyword and whether it's excluded
@@ -27,8 +29,10 @@ typedef struct {
 
 // Create a query from a string
 Query *CreateQuery(const char *str);
+
 // Free a query
 void FreeQuery(Query *query);
+
 // Perform linear search with query
 Document *LinearSearchDocuments(Document *docs, Query *query);
 // Initialize query history

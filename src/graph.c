@@ -185,7 +185,7 @@ double *compute_pagerank(DocumentGraph *g, int max_iters, double d, double tol){
 
         // stop early if below tolerance
         if (max_change < tol) {
-            break;
+            return 0;
         }
     }
 
