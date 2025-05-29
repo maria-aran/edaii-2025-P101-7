@@ -7,10 +7,10 @@
 
 // Query node: holds a keyword and whether it's excluded
 typedef struct QueryNode {
-  char *keyword; // The keyword
-  int exclude;   // 1 if excluded (e.g., -keyword), 0 otherwise
-  int or_flag;   // 1 if keyword came from an (a|b|c) group --> OR condition
-  struct QueryNode *next; // Next keyword in query
+  char *keyword;            // The keyword
+  int exclude;              // 1 if excluded, 0 otherwise
+  int or_flag;              // 1 if keyword came from an (a|b|c) group --> OR condition
+  struct QueryNode *next;   // Next keyword in query.
 } QueryNode;
 
 // Query: list of query nodes
@@ -20,8 +20,7 @@ typedef struct Query {
 
 // Query history: stores last 3 queries
 typedef struct {
-  char *slots[HISTORY_CAPACITY]; // Array of queries --> changed into an array
-                                 // of string to prevent segmentation error
+  char *slots[HISTORY_CAPACITY]; // Array of queries --> changed into an array of string to prevent segmentation error
   int front;                     // Index of oldest query
   int count;                     // Number of queries stored
 } QueryHistory;

@@ -6,46 +6,53 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+//query
+
+
 // init query
 Query *queryInit(const char *str) {
-  if (!str)
-    return NULL;
+
+  if (!str){
+    return NULL; // if input null --> return null
+  }
+  //Allocate the Query struct and ensure it succeeded.
   Query *q = malloc(sizeof(*q));
   assert(q);
-  q->head = NULL;
+  q->head = NULL; //initialize head to null
 
-  char *input = strdup(str);
+  char *input = strdup(str); // Duplicate the input string for in‐place tokenization
   assert(input);
   char *p = input;
 
   while (*p) {
     // skip spaces
-    while (isspace((unsigned char)*p))
+    while (isspace((char)*p)) //Skip whitespace and detect end‐of‐string.
       p++;
     if (!*p)
       break;
 
     int exclude = 0;
-    if (*p == '-') {
+    if (*p == '-') { //detect if it is an exclude word
       exclude = 1;
       p++;
     }
 
     // start of token
     char *start = p;
-    while (*p && !isspace((unsigned char)*p))
+    while (*p && !isspace((char)*p)) //while whe haven't hit the end and the char ins't a space--> then p keeps increasing
       p++;
-    int len = p - start;
+    int len = p - start; //compute lenght
     if (len <= 0)
       continue;
 
-    char *kw = malloc(len + 1);
+    char *kw = malloc(len + 1); //allocate space for the word + nullterminator
     assert(kw);
-    strncpy(kw, start, len);
+    strncpy(kw, start, len); //copy the word
     kw[len] = '\0';
 
-    // ignore lone dashes
-    if (!isalnum((unsigned char)kw[0])) {
+    // ignore lone dashes-- >whose first character isn’t alphanumeric
+    if (!isalnum(kw[0])) {
       free(kw);
       continue;
     }
@@ -63,6 +70,7 @@ Query *queryInit(const char *str) {
   return q;
 }
 
+
 // Free a Query and all its nodes
 void FreeQuery(Query *q) {
   if (!q)
@@ -78,33 +86,37 @@ void FreeQuery(Query *q) {
 
 // Create a query from a string (e.g., "cute cat -dog").
 Query *CreateQuery(const char *str) {
-  if (!str)
+
+  if (!str) //error detection
     return NULL;
 
   Query *query = malloc(sizeof(Query));
-  if (!query)
+
+  if (!query) //error detection
     return NULL;
   query->head = NULL;
 
   // Make a modifiable copy of the input string
   char *input = strdup(str);
-  if (!input) {
+
+  if (!input) { //error detection
     free(query);
     return NULL;
   }
 
   char *ptr = input;
+
   while (*ptr) {
     // Skip leading spaces
     while (isspace(*ptr))
-      ptr++;
-    if (*ptr == '\0')
+      ptr++;//increase pointer so it points to next character
+    if (*ptr == '\0') //if the pointer points to null-terminator --> end of the word
       break;
 
-    int exclude = 0;
-    if (*ptr == '-') {
+    int exclude = 0; // reset exclude value
+    if (*ptr == '-') { // if a dash is found --> NOT --> exclude = 1
       exclude = 1;
-      ptr++;
+      ptr++; //go to the next charaacter's address
     }
 
     // Start of the word
@@ -114,19 +126,21 @@ Query *CreateQuery(const char *str) {
     while (*ptr && !isspace(*ptr))
       ptr++;
 
-    int len = ptr - start;
+    int len = ptr - start; //compute length end-start
     if (len == 0)
-      continue;
+      continue; //no word if length = 0
 
     // Allocate and copy the keyword into a new string
-    char *word = malloc(len + 1);
-    if (!word) {
+    char *word = malloc(len + 1); //length + /0
+
+    if (!word) { //error detection
       free(input);
       FreeQuery(query);
       return NULL;
     }
-    strncpy(word, start, len);
-    word[len] = '\0';
+
+    strncpy(word, start, len); //copy word
+    word[len] = '\0'; //manually add null-terminator
 
     // Skip invalid empty words (like just "-")
     if (!isalnum(word[0])) {
@@ -155,10 +169,11 @@ Query *CreateQuery(const char *str) {
 
 // Check if a text contains a keyword as a whole word (case-sensitive).
 int string_contains(const char *text, const char *keyword) {
-  if (!text || !keyword || !keyword[0])
+
+  if (!text || !keyword || !keyword[0])//error detection
     return 0;
 
-  // Go through the text character by character.
+  // Go through the text character by character --> first we need to compute lengths
   int text_len = strlen(text);
   int keyword_len = strlen(keyword);
   int i = 0;
@@ -167,31 +182,38 @@ int string_contains(const char *text, const char *keyword) {
     // Check if the keyword matches at this position.
     int match = 1;
     for (int j = 0; j < keyword_len; j++) {
-      if (tolower(text[i + j]) != tolower(keyword[j])) {
-        match = 0;
+      if (tolower(text[i + j]) != tolower(keyword[j])) { //compares each character if they are different:
+        match = 0;                                       //match = 0, so doesn't 'enter' the next loop
         break;
       }
     }
 
     // If we found a match, check if it’s a whole word.
+    if (match) { //checking and taking into account plurals...
 
-    if (match) {
       // Check start: either beginning of text or not a letter/number
-      int is_word_start = (i == 0) || !isalnum(text[i - 1]);
+
+      int is_word_start = 1;               // assume it’s the start of a word
+      if (i > 0 && isalnum((unsigned char)text[i - 1])) {
+          // if we’re not at the very beginning and the previous char is alphanumeric,
+          // then we’re actually in the middle of a word
+          is_word_start = 0; 
+      }
+
       // Check end: either end of text, not a letter/number, or followed by 's'
-      int is_word_end =
-          (i + keyword_len == text_len) || !isalnum(text[i + keyword_len]);
+      int is_word_end = (i + keyword_len == text_len) || !isalnum(text[i + keyword_len]);
+
       // Allow plural: if followed by 's', check next character for word
       // boundary
       int is_plural = 0;
       if (i + keyword_len < text_len && text[i + keyword_len] == 's') {
         is_plural = 1;
-        is_word_end = (i + keyword_len + 1 == text_len) ||
-                      !isalnum(text[i + keyword_len + 1]);
+        is_word_end = (i + keyword_len + 1 == text_len) || isalnum(text[i + keyword_len + 1]);
       }
 
-      if (is_word_start && (is_word_end || is_plural)) {
-        return 1; // Found the keyword as a whole word or plural
+      //If both start and end checks pass (or we allowed a plural), we conclude the keyword appears correctly and return 1.
+      if (is_word_start && (is_word_end || is_plural)) { 
+        return 1;
       }
     }
 
@@ -225,7 +247,7 @@ Document *LinearSearchDocuments(Document *docs, Query *query) {
     for (QueryNode *node = query->head; node; node = node->next) {
       const char *k = node->keyword;
 
-      // 1) OR-group: keywords like "(foo|bar|baz)"
+      // 1) OR-group
       if (!node->exclude && k[0] == '(') {
         char term[128];
         int pos = 0, any = 0;
@@ -286,8 +308,12 @@ Document *LinearSearchDocuments(Document *docs, Query *query) {
   return results;
 }
 
+
+//query history
+
 /* Initialize to empty */
 void InitQueryHistory(QueryHistory *history) {
+
   history->front = 0;
   history->count = 0;
   for (int i = 0; i < HISTORY_CAPACITY; i++) {
@@ -298,23 +324,29 @@ void InitQueryHistory(QueryHistory *history) {
 /* Enqueue, dropping oldest if full */
 void AddQueryToHistory(QueryHistory *history, const char *queryStr) {
 
-  if (history->count == HISTORY_CAPACITY) {
-    free(history->slots[history->front]);
+  if (history->count == HISTORY_CAPACITY) { //check for overflow
+    free(history->slots[history->front]);   //frees memory
     history->slots[history->front] = NULL;
     history->front = (history->front + 1) % HISTORY_CAPACITY;
     history->count--;
   }
-  int idx = (history->front + history->count) % HISTORY_CAPACITY;
-  history->slots[idx] = strdup(queryStr);
-  history->count++;
+
+  //Actually adding query
+  int idx = (history->front + history->count) % HISTORY_CAPACITY; //hystory -> front points to the slot holding the oldest entry in the buffer.
+  history->slots[idx] = strdup(queryStr);                         //history->count is how many valid entries are currently stored.
+  history->count++; //when we add one --> increase count
+
+  //when count reaches capacity, the code first increments front (dropping the oldest) before inserting, so you always maintain the most recent HISTORY_CAPACITY items
 }
 
 /* Print from oldest to newest; “-” prefix for exclude terms */
 void PrintQueryHistory(const QueryHistory *history) {
+
   if (history->count == 0) {
-    printf("(none)\n");
+    printf("(none)\n"); //error detection
     return;
   }
+
   for (int i = 0; i < history->count; i++) {
     int idx = (history->front + i) % HISTORY_CAPACITY;
     printf("%s\n", history->slots[idx]);
@@ -323,6 +355,7 @@ void PrintQueryHistory(const QueryHistory *history) {
 
 /* Free any remaining queries */
 void FreeQueryHistory(QueryHistory *history) {
+
   for (int i = 0; i < history->count; i++) {
     int idx = (history->front + i) % HISTORY_CAPACITY;
     free(history->slots[idx]);
@@ -330,8 +363,10 @@ void FreeQueryHistory(QueryHistory *history) {
   history->count = history->front = 0;
 }
 
+
+
 // Helper to not take into account upper and lower cases and plurals or
-// singulars
+// singulars --> used in linear search
 int match_term(const char *text, const char *term) {
   int text_len = strlen(text);
   int term_len = strlen(term);
@@ -387,7 +422,9 @@ int match_term(const char *text, const char *term) {
   return 0;
 }
 
+//query to string (prevent segmentation error)
 char *QueryToString(const Query *q) {
+
   // first, compute total length
   int len = 0;
   for (const QueryNode *n = q->head; n; n = n->next) {
@@ -400,14 +437,18 @@ char *QueryToString(const Query *q) {
   char *out = malloc(len + 1);
   char *p = out;
   for (const QueryNode *n = q->head; n; n = n->next) {
-    if (n->exclude) {
-      *p++ = '-';
+      // optional '-'
+        if (n->exclude) { //if we had later marked as exclude word 
+            *p++ = '-';
+        }
+        // finally, copy keyword character by character
+        const char *kw = n->keyword;
+        for (int i = 0; kw[i] != '\0'; i++) {
+            *p++ = kw[i];
+        }
+        // c) append a space
+        *p++ = ' ';
     }
-    int k = strlen(n->keyword);
-    memcpy(p, n->keyword, k);
-    p += k;
-    *p++ = ' ';
-  }
   // overwrite final space with '\0'
   p[-1] = '\0';
   return out;

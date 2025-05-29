@@ -9,8 +9,10 @@ typedef struct Link {
 
 // Initialize an empty links list
 Link *LinksInit();
+
 // Free all links
 void FreeLinks(Link *head);
+
 // Print all link IDs
 void PrintLinks(Link *head);
 

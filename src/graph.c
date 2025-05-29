@@ -125,8 +125,7 @@ Document *sort_documents_by_relevance(Document *list, DocumentGraph *g) {
   return sorted;
 }
 
-double *compute_pagerank(DocumentGraph *g, int max_iters, double d,
-                         double tol) {
+double *compute_pagerank(DocumentGraph *g, int max_iters, double d, double tol) {
 
   int n = g->numdocs;
 

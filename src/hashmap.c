@@ -6,32 +6,28 @@
 #include <strings.h>
 
 // Do not take into account lower/upper cases, punctuation..
+//Takes input word in, writes a normalized version on out
 void normalize_word(const char *in, char *out) {
   int j = 0;
+
   // copy only alphanumeric, in lowercase
   for (const char *p = in; *p; ++p) {
-    if (isalnum((unsigned char)*p)) {
-      out[j++] = tolower((unsigned char)*p);
+    if (isalnum(*p)) {
+      out[j++] = tolower(*p); //turn to lower
     }
   }
-  out[j] = '\0';
+
+  out[j] = '\0'; //at the end, put null-terminator
 
   // Strip trailing 's' for simple plural handling
   if (j > 1 && out[j - 1] == 's') {
-    out[j - 1] = '\0';
+    out[j - 1] = '\0'; //put where s used to go, to convert it to a singular word
   }
 
-  // Null-terminate the output
-  out[j] = '\0';
-
-  // Strip trailing 's' for basic plural normalization (e.g., "cats" -> "cat")
-  int len = j;
-  if (len > 1 && out[len - 1] == 's') {
-    out[len - 1] = '\0';
-  }
 }
 
-// DJB2 hash function
+
+// DJB2 hash function: : returns an index in [0, size) for where to store/look up key.
 unsigned int hash_fn(const char *key, int size) {
   unsigned long h = 5381;
   int c;
@@ -45,14 +41,16 @@ HashMap *create_hashmap(int size) {
 
   // Allocate the HashMap structure
   HashMap *m = malloc(sizeof(*m));
-  if (!m)
+  if (!m){ //error detection
     return NULL;
+  }
 
+  //store the desired number of slotes
   m->size = size;
 
   // Allocate the table array
   m->table = malloc(size * sizeof(*m->table));
-  if (!m->table) {
+  if (!m->table) { //error detection
     free(m);
     return NULL;
   }
@@ -74,16 +72,16 @@ void free_hashmap(HashMap *map) {
 
     // go throught
     while (hashnode) {
-      // save next node foreve freeing the current
+      // save next node before freeing the current
       HashNode *tmp = hashnode->next;
       free(hashnode->key);
 
       // free the whole list of document for the corresponding node
-      for (DocLinked *doclinked = hashnode->docs, *nx; doclinked;
-           doclinked = nx) {
+      for (DocLinked *doclinked = hashnode->docs, *nx; doclinked; doclinked = nx) {
         nx = doclinked->next;
         free(doclinked);
       }
+
       free(hashnode);
       hashnode = tmp;
     }
@@ -109,24 +107,29 @@ int doc_exists(DocLinked *list, int id) {
 }
 
 // Insert a (word → docId) mapping into the hashmap.
+//you either add id to an existing word entry 
+//or create a brand-new word entry. 
+//Over all documents and words, this builds the full reverse index so lookups by word become simple
 void put_hashmap(HashMap *m, const char *key, int docId) {
   char norm[128];
 
   // Normalize the input word
   normalize_word(key, norm);
   if (norm[0] == '\0') {
-    return;
+    return; //if the normalization produced and empty word --> stop
   }
 
-  // compute slot index via hash
+  // compute slot index via hash function
   unsigned int slot = hash_fn(norm, m->size);
 
   // search the chain at m->table[slot] for an existing node
   HashNode *h = m->table[slot];
   while (h) {
-    if (strcmp(h->key, norm) == 0) {
+
+    if (strcmp(h->key, norm) == 0) { //compare the key to the normalized word
+
       // found the bucket for this word
-      if (!doc_exists(h->docs, docId)) {
+      if (!doc_exists(h->docs, docId)) { //to see if this document is already recorded for that word.
         // only add if not already present
         DocLinked *dl = malloc(sizeof(*dl));
         dl->doc_id = docId;
@@ -155,13 +158,13 @@ void put_hashmap(HashMap *m, const char *key, int docId) {
   m->table[slot] = h;
 }
 
-// Build both indexes, for every document, extract the words form the title and
-// body into hashmaps
-void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx,
-                           Document *allDocs) {
+//reverse‐index: for each normalized word, it stores a linked list of document IDs containing that word. (optimizating the code)
+// transform the collection of Documents into two hashmaps that tell you, for any given word, exactly which documents contain it
+void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDocs) {
 
   Document *d = allDocs;
-  while (d) {
+  while (d) { //iterate thought all documents
+
     // first we will index the title
     //  Pointer to the title string (or empty if NULL)
     const char *text = d->title ? d->title : "";
@@ -171,8 +174,10 @@ void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx,
     // Iterate throught each letter of the title
     for (int i = 0;; i++) {
       char c = text[i];
+
       // If we hit whitespace or end-of-string...
       if (c == ' ' || c == '\t' || c == '\n' || c == '\0') {
+
         if (pos > 0) {
           // terminate the token and insert it
           buf[pos] = '\0';
@@ -214,18 +219,21 @@ void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx,
   }
 }
 
-void serialize_reverse_index(HashMap *map, const char *filename) {
-  FILE *out = fopen(filename, "w");
-  if (!out)
-    return;
 
-  for (int i = 0; i < map->size; i++) {
+//This function saves your in-memory word→document map into a simple text file
+void serialize_reverse_index(HashMap *map, const char *filename) {
+
+  FILE *out = fopen(filename, "w"); //openning the file in writting mode
+  if (!out)
+    return; //error detection
+
+  for (int i = 0; i < map->size; i++) { //go though all the buckets in the hash table
     HashNode *n = map->table[i];
     while (n) {
-      fprintf(out, "%s", n->key);
+      fprintf(out, "%s", n->key); //print the key for each word in the bucket
       DocLinked *d = n->docs;
       while (d) {
-        fprintf(out, " %d", d->doc_id);
+        fprintf(out, " %d", d->doc_id); //Walk the list of documents for that word, and for each one print a space and then the document’s ID.
         d = d->next;
       }
       fprintf(out, "\n");
@@ -237,6 +245,7 @@ void serialize_reverse_index(HashMap *map, const char *filename) {
 }
 
 HashMap *deserialize_reverse_index(const char *filename, int size) {
+  
   HashMap *map = create_hashmap(size);
   FILE *in = fopen(filename, "r");
   if (!in)
@@ -308,9 +317,7 @@ DocLinked *intersect(DocLinked *a, DocLinked *b) {
 }
 
 // subtraction helper
-DocLinked *subtract(
-    DocLinked *base,
-    DocLinked *rem) { // rem is list of documents you want to exclude from base
+DocLinked *subtract(DocLinked *base, DocLinked *rem) { // rem is list of documents you want to exclude from base
   DocLinked *out = NULL;
   for (DocLinked *b = base; b; b = b->next) {
 
@@ -359,8 +366,7 @@ Document *make_doc_list(DocLinked *idList, Document *allDocs) {
 
 //  Search using two reverse-index hashmaps (one for titles, one for bodies).
 //  Returns a newly built list of Document* that satisfy the Query q.
-Document *search_documents_with_index(HashMap *titleIdx, HashMap *bodyIdx,
-                                      Query *q, Document *allDocs) {
+Document *search_documents_with_index(HashMap *titleIdx, HashMap *bodyIdx, Query *q, Document *allDocs) {
   DocLinked *res = NULL; // intermediate list of matching doc IDs
   int first = 1;
 

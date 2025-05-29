@@ -115,24 +115,17 @@ void PrintDocument(Document *doc) {
     return;
   }
 
-  printf(" ▏Document ID: [%d]      ▏\n", doc->id);
+  printf(" \n ▏Document ID: [%d]     \n", doc->id);
 
-  printf(" ▏Title: %s ▏\n", doc->title ? doc->title : "(no title)");
-  printf("Links: ");
+  printf(" ▏Title: %s \n", doc->title ? doc->title : "(no title)");
+  printf(" ▏Links: ");
 
   PrintLinks(doc->links);
 
-  printf("Body: ");
+  printf(" ▏Body: ");
   if (doc->body) {
-    // Print first 150 chars of body with ellipsis if longer
-    if (strlen(doc->body) > 150) {
-      char snippet[151];
-      strncpy(snippet, doc->body, 150);
-      snippet[150] = '\0';
-      printf("%s\n", snippet);
-    } else {
+    // Print all the body (not just a snipeed)
       printf("%s\n", doc->body);
-    }
   } else {
     printf("(no body)\n");
   }
@@ -141,58 +134,71 @@ void PrintDocument(Document *doc) {
 
 // get the corresponding information out of the datasets and classify it
 Document *document_desserialize(char *path) {
+
+  //open the file --> file pointer =n f
   FILE *f = fopen(path, "r");
-  assert(f != NULL);
+  assert(f != NULL);  //check it was correctly openned
 
   /* allocate Document */
   Document *document = malloc(sizeof(Document));
-  assert(document != NULL);
+  assert(document != NULL); //no dynamic memory fails
 
   /* scratch buffer for id/title/body */
   char buffer[BODY_BUF_SIZE];
   int bufferIdx = 0;
   int ch;
 
-  /* 1) parse ID */
+  /* parse ID --> first line*/ 
   while ((ch = fgetc(f)) != EOF && ch != '\n') {
-    assert(bufferIdx < BODY_BUF_SIZE);
+    assert(bufferIdx < BODY_BUF_SIZE); //make sure it fits on buffer
     buffer[bufferIdx++] = (char)ch;
   }
-  assert(bufferIdx < BODY_BUF_SIZE);
-  buffer[bufferIdx] = '\0';
-  document->id = atoi(buffer);
 
-  /* 2) parse Title */
-  bufferIdx = 0;
+  buffer[bufferIdx] = '\0';
+  document->id = atoi(buffer); //put whatever is saved on buffer (id) into the corresponding place, this way we can check that it fitted the buffer.
+  //First turn from character to integer (atoi)
+
+
+  /* parse Title */
+  bufferIdx = 0; // turn to 0 again
   while ((ch = fgetc(f)) != EOF && ch != '\n') {
-    assert(bufferIdx < BODY_BUF_SIZE);
+    assert(bufferIdx < BODY_BUF_SIZE); //again check that it fits
     buffer[bufferIdx++] = (char)ch;
   }
-  assert(bufferIdx < BODY_BUF_SIZE);
   buffer[bufferIdx] = '\0';
-  document->title = strdup(buffer);
+  document->title = strdup(buffer); //strdup works as a malloc + strcpy
 
-  /* 3) parse Body + extract links */
-  bufferIdx = 0;
+  /* parse Body + extract links (at the same time we copy the text we will search for links (for [ ] and then () if found --> save them on links link))*/
+  bufferIdx = 0;                  //again turn to 0 
   char linkBuffer[LINK_BUF_SIZE];
   int linkBufferIdx = 0;
-  bool parsingLink = false;
-  Link *links = LinksInit();
+  bool parsingLink = false;   //if found --> change to true
+  Link *links = LinksInit();  //initialize
 
-  while ((ch = fgetc(f)) != EOF) {
+  while ((ch = fgetc(f)) != EOF) { //while the end of the file isn't reached
+
     /* always copy every char into body */
-    assert(bufferIdx < BODY_BUF_SIZE);
-    buffer[bufferIdx++] = (char)ch;
+    assert(bufferIdx < BODY_BUF_SIZE); //make sure the index isn't bigger then buffer
 
-    if (parsingLink) {
+    buffer[bufferIdx++] = (char)ch; //copy the character and increase the index to go thought the next one
+
+
+    if (parsingLink) { //if the link was found (the format)--> [wolves](11) (exmaple of format)
+
       if (ch == ')') {
         /* end of link ID */
-        parsingLink = false;
-        assert(linkBufferIdx < LINK_BUF_SIZE);
-        linkBuffer[linkBufferIdx] = '\0';
-        int linkId = atoi(linkBuffer);
-        LinksAppend(links, linkId);
-        linkBufferIdx = 0;
+        parsingLink = false; //we will copy this one, so reset it
+
+        assert(linkBufferIdx < LINK_BUF_SIZE); //make sure it fits
+
+        linkBuffer[linkBufferIdx] = '\0'; // add null-terminator
+
+        int linkId = atoi(linkBuffer); //save link (first turn into integer)
+
+        LinksAppend(links, linkId); //use the function LinksAppend to append the just save integer to the link list
+
+        linkBufferIdx = 0; //link buffer reset
+
       } else if (isdigit(ch)) {
         /* accumulate only digits */
         assert(linkBufferIdx < LINK_BUF_SIZE);
@@ -218,13 +224,13 @@ Document *document_desserialize(char *path) {
   assert(bufferIdx < BODY_BUF_SIZE);
   buffer[bufferIdx] = '\0';
   document->body = malloc(bufferIdx + 1);
-  assert(document->body != NULL);
+  assert(document->body != NULL); //make sure it isn't empty
   strcpy(document->body, buffer);
 
   /* 5) attach links & default relevance */
   document->links = links;
   document->relevance = 0.0;
 
-  fclose(f);
+  fclose(f); //close the document
   return document;
 }
