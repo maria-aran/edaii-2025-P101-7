@@ -1,9 +1,9 @@
 #include "hashmap.h"
+#include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <strings.h>  
-#include <stdio.h>    
+#include <strings.h>
 
 // Do not take into account lower/upper cases, punctuation..
 //Takes input word in, writes a normalized version on out
@@ -64,37 +64,23 @@ HashMap *create_hashmap(int size) {
 }
 
 void free_hashmap(HashMap *map) {
-    if (!map) return;
-    //iterate over the slots
-    for (int i = 0; i < map->size; i++) {
-
-        //start with the head
-        HashNode *hashnode = map->table[i];
-        
-        //go through the chain and free everything
-        while (hashnode) {
-            HashNode *tmp = hashnode->next;
-            free(hashnode->key);
-
-    // go throught
+  for (int i = 0; i < map->size; i++) {
+    HashNode *hashnode = map->table[i];
     while (hashnode) {
       HashNode *tmp = hashnode->next;
       free(hashnode->key);
-
-      // free the whole list of document for the corresponding node
-      for (DocLinked *doclinked = hashnode->docs, *nx; doclinked; doclinked = nx) {
-        nx = doclinked->next;
-        free(doclinked);
+      for (DocLinked *dl = hashnode->docs, *nx; dl; dl = nx) {
+        nx = dl->next;
+        free(dl);
       }
-
       free(hashnode);
       hashnode = tmp;
-    
     }
+  }
+  free(map->table);
+  free(map);
 }
-            // free the whole list of document IDs for this node
-            for (DocLinked *doclinked = hashnode->docs, *nx; doclinked; doclinked = nx) {
-}
+
 
 //  Insert one
 //helper that returns 1 if found, and 0 if it does not exist
@@ -116,82 +102,47 @@ int doc_exists(DocLinked *list, int id) {
 // you either add id to an existing word entry 
 // or create a brand-new word entry. 
 void put_hashmap(HashMap *m, const char *key, int docId) {
-    char norm[128];
-
-<<<<<<< Updated upstream
-  // Normalize the input word
+  char norm[128];
   normalize_word(key, norm);
-  if (norm[0] == '\0') {
-    return; //if the normalization produced and empty word --> stop
-  }
+  if (norm[0] == '\0') return;
 
-  // compute slot index via hash function
   unsigned int slot = hash_fn(norm, m->size);
 
-  // search the chain at m->table[slot] for an existing node
-  HashNode *h = m->table[slot];
-  while (h) {
-
-    if (strcmp(h->key, norm) == 0) { //compare the key to the normalized word
-
-      // found the bucket for this word
-      if (!doc_exists(h->docs, docId)) { //to see if this document is already recorded for that word.
-        // only add if not already present
+  // 1) Look for existing HashNode in this bucket
+  for (HashNode *h = m->table[slot]; h; h = h->next) {
+    if (strcmp(h->key, norm) == 0) {
+      if (!doc_exists(h->docs, docId)) {
         DocLinked *dl = malloc(sizeof(*dl));
         dl->doc_id = docId;
         dl->next = h->docs;
         h->docs = dl;
       }
-      return; // done
-=======
-    // Normalize the input word
-    normalize_word(key, norm);
-    if (norm[0] == '\0') {
-        return; // empty after normalization
->>>>>>> Stashed changes
+      return;
     }
+  }
 
-    // compute slot index via hash
-    unsigned int slot = hash_fn(norm, m->size);
+  // 2) Not found → create a new bucket node
+  HashNode *h = malloc(sizeof(*h));
+  h->key = malloc(strlen(norm) + 1);
+  strcpy(h->key, norm);
 
-    // search the chain at m->table[slot] for an existing node
-    HashNode *h = m->table[slot];
-    while (h) {
-        if (strcmp(h->key, norm) == 0) { // found the bucket for this word
-            if (!doc_exists(h->docs, docId)) { // avoid duplicates
-                DocLinked *dl = malloc(sizeof(*dl));
-                dl->doc_id = docId;
-                dl->next   = h->docs;
-                h->docs    = dl;
-            }
-            return; // done
-        }
-        h = h->next;
-    }
+  // initialize docs list to this one docId
+  h->docs = malloc(sizeof(*h->docs));
+  h->docs->doc_id = docId;
+  h->docs->next = NULL;
 
-    // word not found: create a fresh HashNode and prepend it
-    h = malloc(sizeof(*h));
-    h->key = malloc(strlen(norm) + 1);
-    strcpy(h->key, norm);
-
-    // initialize the docs list with this one docId
-    h->docs = malloc(sizeof(*h->docs));
-    h->docs->doc_id = docId;
-    h->docs->next   = NULL;
-
-    // link into the slot’s chain
-    h->next         = m->table[slot];
-    m->table[slot]  = h;
+  // link into chain head
+  h->next = m->table[slot];
+  m->table[slot] = h;
 }
 
-<<<<<<< Updated upstream
+
 //reverse‐index: for each normalized word, it stores a linked list of document IDs containing that word. (optimizating the code)
 // transform the collection of Documents into two hashmaps that tell you, for any given word, exactly which documents contain it
 void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDocs) {
 
   Document *d = allDocs;
-  while (d) { //iterate thought all documents
-
+  while (d) {
     // first we will index the title
     //  Pointer to the title string (or empty if NULL)
     const char *text = d->title ? d->title : "";
@@ -201,60 +152,47 @@ void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDoc
     // Iterate throught each letter of the title
     for (int i = 0;; i++) {
       char c = text[i];
-
       // If we hit whitespace or end-of-string...
       if (c == ' ' || c == '\t' || c == '\n' || c == '\0') {
-
         if (pos > 0) {
           // terminate the token and insert it
           buf[pos] = '\0';
           put_hashmap(titleIdx, buf, d->id);
           pos = 0; // reset for next token
-=======
-// reverse‐index: for each normalized word, it stores a linked list of document IDs
-// containing that word
-void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDocs) {
-
-    Document *d = allDocs;
-    while (d) {
-        // index the title
-        const char *text = d->title ? d->title : "";
-        char buf[128];
-        int pos = 0;
-        for (int i = 0;; i++) {
-            char c = text[i];
-            if (c == ' ' || c == '\t' || c == '\n' || c == '\0') {
-                if (pos > 0) {
-                    buf[pos] = '\0';
-                    put_hashmap(titleIdx, buf, d->id);
-                    pos = 0;
-                }
-                if (c == '\0') break;
-            } else {
-                buf[pos++] = c;
-            }
->>>>>>> Stashed changes
         }
-
-        // same with the body
-        text = d->body ? d->body : "";
-        pos = 0;
-        for (int i = 0;; i++) {
-            char c = text[i];
-            if (c == ' ' || c == '\t' || c == '\n' || c == '\0') {
-                if (pos > 0) {
-                    buf[pos] = '\0';
-                    put_hashmap(bodyIdx, buf, d->id);
-                    pos = 0;
-                }
-                if (c == '\0') break;
-            } else {
-                buf[pos++] = c;
-            }
-        }
-
-        d = d->next;
+        // if it was the end, break out
+        if (c == '\0')
+          break;
+      } else {
+        // normal character → accumulate in buf
+        buf[pos++] = c;
+      }
     }
+
+    // same with the body
+
+    text = d->body ? d->body : "";
+    pos = 0; // reuse buffer
+
+    // Same loop over the body text
+    for (int i = 0;; i++) {
+      char c = text[i];
+      if (c == ' ' || c == '\t' || c == '\n' || c == '\0') {
+        if (pos > 0) {
+          buf[pos] = '\0';
+          put_hashmap(bodyIdx, buf, d->id);
+          pos = 0;
+        }
+        if (c == '\0')
+          break;
+      } else {
+        buf[pos++] = c;
+      }
+    }
+
+    // move to next document
+    d = d->next;
+  }
 }
 
 void serialize_reverse_index(HashMap *map, const char *filename) {
@@ -408,20 +346,13 @@ void print_snippet(const char *body, Query *q){
         buf[pos++] = body[i];
     }
 
-<<<<<<< Updated upstream
     if (match >= 0) {
         // suffix ellipsis if we didn’t reach the end
         if (end < bodylen && pos < (int)sizeof(buf) - 1) {
-            buf[pos++] = '.'; dv ,
+            buf[pos++] = '.'; 
             buf[pos++] = '.';
             buf[pos++] = '.';
         }
-=======
-    if (match >= 0 && end < bodylen && pos < (int)sizeof(buf) - 1) {
-        buf[pos++] = '.';
-        buf[pos++] = '.';
-        buf[pos++] = '.';
->>>>>>> Stashed changes
     }
 
     buf[pos] = '\0';
@@ -595,5 +526,3 @@ Document *search_documents_with_index(HashMap *titleIdx, HashMap *bodyIdx, Query
   }
   return out;
 }
-
- dv ,

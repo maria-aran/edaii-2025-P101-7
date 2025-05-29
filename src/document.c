@@ -9,7 +9,7 @@
 #include <ctype.h>
 
 
-#define BODY_BUF_SIZE 4000
+#define BODY_BUF_SIZE 800000
 #define LINK_BUF_SIZE 4000
 
 // Create a new document with given id, title, and body
