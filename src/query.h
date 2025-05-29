@@ -42,4 +42,5 @@ void FreeQueryHistory(QueryHistory *history);
 
 int match_term(const char *text, const char *term);
 
+char *QueryToString(const Query *q);
 #endif
