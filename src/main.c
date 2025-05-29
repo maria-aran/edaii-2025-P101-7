@@ -1,49 +1,45 @@
-#include "document.h"
 #include "dataset.h"
+#include "document.h"
 #include "graph.h"
 #include "hashmap.h"
-#include "query.h"
 #include "links.h"
+#include "query.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define TITLE_MAP_SIZE 100000
-#define BODY_MAP_SIZE  200000
-#define MAX_QUERY_LEN  200
-#define MAX_RESULTS    5
-#define PR_ITERS       100
-#define PR_DAMPING     0.85
-#define PR_TOL         1e-6
+#define BODY_MAP_SIZE 200000
+#define MAX_QUERY_LEN 200
+#define MAX_RESULTS 5
+#define PR_ITERS 100
+#define PR_DAMPING 0.85
+#define PR_TOL 1e-6
 
-int main() {
-    // 1) Load all docs into the list
+
+int main(void) {
+    // 1) Load documents
     Document *docs = LoadDocumentsFromFolder("datasets/wikipedia12");
-
-    // 2) Init reverse index (hashmaps), try to load from disk first
-    const char *title_idx_file = "title.idx";
-    const char *body_idx_file  = "body.idx";
-
-    HashMap *titleIdx = deserialize_reverse_index(title_idx_file, TITLE_MAP_SIZE);
-    HashMap *bodyIdx  = deserialize_reverse_index(body_idx_file,  BODY_MAP_SIZE);
-
-    if (!titleIdx || !bodyIdx) {
-        // build missing maps
-        if (!titleIdx) titleIdx = create_hashmap(TITLE_MAP_SIZE);
-        if (!bodyIdx)  bodyIdx  = create_hashmap(BODY_MAP_SIZE);
-
-        build_reverse_indexes(titleIdx, bodyIdx, docs);
-
-        // save them for next run
-        serialize_reverse_index(titleIdx, title_idx_file);
-        serialize_reverse_index(bodyIdx,  body_idx_file);
+    if (!docs) {
+        fprintf(stderr, "No documents loaded.\n");
+        return EXIT_FAILURE;
     }
 
-    // 3) Init the graph (edges from d->links)
+    // 2) Load or build reverse indexes
+    HashMap *titleIdx = deserialize_reverse_index("title.idx", TITLE_MAP_SIZE);
+    HashMap *bodyIdx  = deserialize_reverse_index("body.idx",  BODY_MAP_SIZE);
+    if (!titleIdx || !bodyIdx) {
+        if (!titleIdx) titleIdx = create_hashmap(TITLE_MAP_SIZE);
+        if (!bodyIdx)  bodyIdx  = create_hashmap(BODY_MAP_SIZE);
+        build_reverse_indexes(titleIdx, bodyIdx, docs);
+        serialize_reverse_index(titleIdx, "title.idx");
+        serialize_reverse_index(bodyIdx,  "body.idx");
+    }
+
+    // 3) Build document graph
     int numDocs = 0;
     for (Document *d = docs; d; d = d->next) ++numDocs;
-
     DocumentGraph *g = graph_create(numDocs);
     for (Document *d = docs; d; d = d->next) {
         for (Link *l = d->links->next; l; l = l->next) {
@@ -51,30 +47,42 @@ int main() {
         }
     }
 
-    // 4) Precompute or load PageRank scores
-    const char *pr_file = "pageranks.dat";
-    int    pr_count = 0;
-    double *pageRanks = load_relevance_scores(pr_file, &pr_count);
-
+    // 4) Load or compute PageRank
+    int    pr_count;
+    double *pageRanks = load_relevance_scores("pageranks.dat", &pr_count);
     if (!pageRanks || pr_count != numDocs) {
-        // compute & then save
-        if (pageRanks) free(pageRanks);
+        free(pageRanks);
         pageRanks = compute_pagerank(g, PR_ITERS, PR_DAMPING, PR_TOL);
-        save_relevance_scores(pr_file, pageRanks, numDocs);
+        save_relevance_scores("pageranks.dat", pageRanks, numDocs);
     }
 
-    // 5) Main REPL
-    char input[MAX_QUERY_LEN+1];
+    // 5) Initialize query history
+    QueryHistory history;
+    InitQueryHistory(&history);
+
+    // 6) Main REPL
+    char   input[MAX_QUERY_LEN + 1];
     while (1) {
+        // a) Show recent searches
+        printf("******* recent searches ********\n");
+        PrintQueryHistory(&history);
+        printf("********************************\n\n");
+
+        // b) Read user query
         printf("Search: ");
         if (!fgets(input, sizeof input, stdin)) break;
         input[strcspn(input, "\n")] = '\0';
         if (input[0] == '\0') break;
 
-        Query    *q    = CreateQuery(input);
-        Document *hits = search_documents_with_index(titleIdx, bodyIdx, q, docs);
+        // c) Parse & record
+        Query *q = CreateQuery(input);
+        AddQueryToHistory(&history, q);
+
+        // d) Search & rank
+        Document *hits   = search_documents_with_index(titleIdx, bodyIdx, q, docs);
         Document *ranked = sort_documents_by_relevance(hits, g);
 
+        // e) Display top results
         printf("\n-- Top %d by PageRank --\n", MAX_RESULTS);
         int printed = 0;
         for (Document *d = ranked; d && printed < MAX_RESULTS; d = d->next, ++printed) {
@@ -84,21 +92,27 @@ int main() {
         }
         printf(" [%d results]\n\n", printed);
 
+        // f) Prompt for detail or new search
         printf("Choose document index for details (-1 to new search): ");
         int idx;
-        if (scanf("%d", &idx) != 1 || idx < 0 || idx >= printed) {
-            int c; 
+        if (scanf("%d", &idx) != 1) {
+            // Bad input: clear stdin and start new search
+            int c;
             while ((c = getchar()) != '\n' && c != EOF);
-            Document *cur = ranked;
-            while (cur) {
-                    Document *next = cur->next;
-                    FreeDocument(cur);
-                    cur = next;
-                }
+            FreeDocument(ranked);
             FreeQuery(q);
+            continue;
         }
+        // consume trailing newline
         while (getchar() != '\n');
 
+        if (idx < 0 || idx >= printed) {
+            // New search
+            FreeDocument(ranked);
+            continue;
+        }
+
+        // g) Valid index: show full document
         Document *cur = ranked;
         for (int i = 0; i < idx; i++) cur = cur->next;
         int selId = cur->id;
@@ -108,18 +122,25 @@ int main() {
         if (orig) {
             PrintDocument(orig);
         } else {
-            fprintf(stderr, "Error: could not find original document %d\n", selId);
+            fprintf(stderr, "Error: document %d not found\n", selId);
         }
 
         FreeDocument(ranked);
         FreeQuery(q);
     }
 
-    // tear down
-    free(pageRanks);
+    // 7) Cleanup
+    FreeQueryHistory(&history);
     graph_free(g);
+    free(pageRanks);
     free_hashmap(titleIdx);
     free_hashmap(bodyIdx);
-    FreeDocument(docs);
+
+    // free original docs list
+    for (Document *d = docs, *next; d; d = next) {
+        next = d->next;
+        FreeDocument(d);
+    }
+
     return EXIT_SUCCESS;
 }

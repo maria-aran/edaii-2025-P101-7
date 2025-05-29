@@ -6,6 +6,4 @@
 // Load all documents from a folder
 Document *LoadDocumentsFromFolder(const char *folderPath);
 
-
-
 #endif

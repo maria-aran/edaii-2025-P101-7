@@ -3,28 +3,26 @@
 
 #include "document.h"
 
-
-
 #define HISTORY_CAPACITY 3
 
 // Query node: holds a keyword and whether it's excluded
 typedef struct QueryNode {
-    char *keyword;           // The keyword
-    int exclude;            // 1 if excluded (e.g., -keyword), 0 otherwise
-    int              or_flag;  // 1 if keyword came from an (a|b|c) group --> OR condition
-    struct QueryNode *next; // Next keyword in query
+  char *keyword; // The keyword
+  int exclude;   // 1 if excluded (e.g., -keyword), 0 otherwise
+  int or_flag;   // 1 if keyword came from an (a|b|c) group --> OR condition
+  struct QueryNode *next; // Next keyword in query
 } QueryNode;
 
 // Query: list of query nodes
 typedef struct Query {
-    QueryNode *head; // Head of query nodes
+  QueryNode *head; // Head of query nodes
 } Query;
 
 // Query history: stores last 3 queries
 typedef struct {
-    Query *slots[HISTORY_CAPACITY]; // Array of queries
-    int front;                      // Index of oldest query
-    int count;                      // Number of queries stored
+  Query *slots[HISTORY_CAPACITY]; // Array of queries
+  int front;                      // Index of oldest query
+  int count;                      // Number of queries stored
 } QueryHistory;
 
 // Create a query from a string
@@ -35,15 +33,20 @@ void FreeQuery(Query *query);
 
 // Perform linear search with query
 Document *LinearSearchDocuments(Document *docs, Query *query);
+
 // Initialize query history
 void InitQueryHistory(QueryHistory *history);
+
 // Add query to history
 void AddQueryToHistory(QueryHistory *history, Query *query);
+
 // Print query history
 void PrintQueryHistory(const QueryHistory *history);
+
 // Free query history
 void FreeQueryHistory(QueryHistory *history);
 
+// helper
 int match_term(const char *text, const char *term);
 
 #endif
