@@ -27,7 +27,7 @@ Document *CreateDocument(int id, const char *title, const char *body) {
     return NULL; // if failed to allocate the Document struct -->stop
   }
 
-  //first set the id
+  // first set the id
   doc->id = id;
 
   // Copy title if is not empty
@@ -70,10 +70,10 @@ Document *CreateDocument(int id, const char *title, const char *body) {
     doc->body = malloc(len + 1);
     if (doc->body == NULL) {
       // Clean up title and doc if body allocation fails
-      if (doc->title != NULL){
+      if (doc->title != NULL) {
         free(doc->title);
         free(doc);
-      return NULL;
+        return NULL;
       }
     }
 
@@ -92,7 +92,7 @@ Document *CreateDocument(int id, const char *title, const char *body) {
 
   doc->next = NULL; // No next document in list yet
 
-  return doc;   
+  return doc;
 }
 
 // Free a document and its resources

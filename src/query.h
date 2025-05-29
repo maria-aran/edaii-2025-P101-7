@@ -20,9 +20,10 @@ typedef struct Query {
 
 // Query history: stores last 3 queries
 typedef struct {
-  char *slots[HISTORY_CAPACITY]; // Array of queries --> changed into an array of string to prevent segmentation error
-  int front;                      // Index of oldest query
-  int count;                      // Number of queries stored
+  char *slots[HISTORY_CAPACITY]; // Array of queries --> changed into an array
+                                 // of string to prevent segmentation error
+  int front;                     // Index of oldest query
+  int count;                     // Number of queries stored
 } QueryHistory;
 
 // Create a query from a string
@@ -49,7 +50,7 @@ void FreeQueryHistory(QueryHistory *history);
 // helper
 int match_term(const char *text, const char *term);
 
-//turns query into a string to preventent segmentation error
+// turns query into a string to preventent segmentation error
 char *QueryToString(const Query *q);
 
 #endif

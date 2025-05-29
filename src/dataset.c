@@ -7,11 +7,11 @@
 #define MAX_PATH 1000
 
 // Load all documents from a folder into a linked list.
-Document *LoadDocumentsFromFolder(const char *folderPath) { 
+Document *LoadDocumentsFromFolder(const char *folderPath) {
 
-    //the directory is openned
+  // the directory is openned
   DIR *dir = opendir(folderPath);
-  if (dir == NULL) { //error detection
+  if (dir == NULL) { // error detection
     printf("Error: cannot open \"%s\"\n", folderPath);
     return NULL;
   }
@@ -20,8 +20,8 @@ Document *LoadDocumentsFromFolder(const char *folderPath) {
   struct dirent *entry;
   char path[MAX_PATH];
 
- //iterate thought the whole folder
-  while ((entry = readdir(dir)) != NULL) { //reads directory
+  // iterate thought the whole folder
+  while ((entry = readdir(dir)) != NULL) { // reads directory
 
     /* Build the full path: folderPath + "/" + entry->d_name */
     strcpy(path, folderPath);

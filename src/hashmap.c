@@ -157,7 +157,8 @@ void put_hashmap(HashMap *m, const char *key, int docId) {
 
 // Build both indexes, for every document, extract the words form the title and
 // body into hashmaps
-void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDocs) {
+void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx,
+                           Document *allDocs) {
 
   Document *d = allDocs;
   while (d) {
@@ -307,7 +308,9 @@ DocLinked *intersect(DocLinked *a, DocLinked *b) {
 }
 
 // subtraction helper
-DocLinked *subtract( DocLinked *base, DocLinked *rem) { // rem is list of documents you want to exclude from base
+DocLinked *subtract(
+    DocLinked *base,
+    DocLinked *rem) { // rem is list of documents you want to exclude from base
   DocLinked *out = NULL;
   for (DocLinked *b = base; b; b = b->next) {
 
@@ -354,10 +357,10 @@ Document *make_doc_list(DocLinked *idList, Document *allDocs) {
   return resultHead;
 }
 
-
 //  Search using two reverse-index hashmaps (one for titles, one for bodies).
 //  Returns a newly built list of Document* that satisfy the Query q.
-Document *search_documents_with_index(HashMap *titleIdx, HashMap *bodyIdx, Query *q, Document *allDocs) {
+Document *search_documents_with_index(HashMap *titleIdx, HashMap *bodyIdx,
+                                      Query *q, Document *allDocs) {
   DocLinked *res = NULL; // intermediate list of matching doc IDs
   int first = 1;
 

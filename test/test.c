@@ -375,23 +375,23 @@ void test_graph_indegree() {
 }
 
 void test_pagerank_uniform() {
-    // arrange: graph of 3 nodes, no edges
-    DocumentGraph *g = graph_create(2);
-    assert(g != NULL);
+  // arrange: graph of 3 nodes, no edges
+  DocumentGraph *g = graph_create(2);
+  assert(g != NULL);
 
-    // act: ask for 0 iterations → should return the initial uniform rank
-    double *r = compute_pagerank(g, 0, 0.85, 1e-6);
-    assert(r != NULL);
+  // act: ask for 0 iterations → should return the initial uniform rank
+  double *r = compute_pagerank(g, 0, 0.85, 1e-6);
+  assert(r != NULL);
 
-    // assert: each of the 2 ranks is exactly 1/2
+  // assert: each of the 2 ranks is exactly 1/2
 
-    assert(r[0]==0.5);
-    assert(r[1] == 0.5);
+  assert(r[0] == 0.5);
+  assert(r[1] == 0.5);
 
-    // clean up
-    free(r);
-    graph_free(g);
-    printf("test %d (pagerank uniform) passed!\n", ++test_number);
+  // clean up
+  free(r);
+  graph_free(g);
+  printf("test %d (pagerank uniform) passed!\n", ++test_number);
 }
 
 int main() {
