@@ -7,17 +7,10 @@
 
 // Query node: holds a keyword and whether it's excluded
 typedef struct QueryNode {
-<<<<<<< HEAD
   char *keyword;            // The keyword
   int exclude;              // 1 if excluded, 0 otherwise
   int or_flag;              // 1 if keyword came from an (a|b|c) group --> OR condition
   struct QueryNode *next;   // Next keyword in query.
-=======
-    char *keyword;           // The keyword
-    int exclude;            // 1 if excluded (e.g., -keyword), 0 otherwise
-    int              or_flag;  // 1 if keyword came from an (a|b|c) group --> OR condition
-    struct QueryNode *next; // Next keyword in query
->>>>>>> 1bd974b0f5cb5c033e33752f131d2032f61440ba
 } QueryNode;
 
 // Query: list of query nodes
@@ -27,15 +20,9 @@ typedef struct Query {
 
 // Query history: stores last 3 queries
 typedef struct {
-<<<<<<< HEAD
   char *slots[HISTORY_CAPACITY]; // Array of queries --> changed into an array of string to prevent segmentation error
   int front;                     // Index of oldest query
   int count;                     // Number of queries stored
-=======
-    Query *slots[HISTORY_CAPACITY]; // Array of queries
-    int front;                      // Index of oldest query
-    int count;                      // Number of queries stored
->>>>>>> 1bd974b0f5cb5c033e33752f131d2032f61440ba
 } QueryHistory;
 
 // Create a query from a string
@@ -47,7 +34,7 @@ Document *LinearSearchDocuments(Document *docs, Query *query);
 // Initialize query history
 void InitQueryHistory(QueryHistory *history);
 // Add query to history
-void AddQueryToHistory(QueryHistory *history, Query *query);
+void AddQueryToHistory(QueryHistory *history, const char *queryStr);
 // Print query history
 void PrintQueryHistory(const QueryHistory *history);
 // Free query history

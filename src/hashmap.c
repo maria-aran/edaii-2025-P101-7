@@ -8,22 +8,21 @@
 // Do not take into account lower/upper cases, punctuation..
 //Takes input word in, writes a normalized version on out
 void normalize_word(const char *in, char *out) {
-  int j = 0;
+    int j = 0;
 
-  // copy only alphanumeric, in lowercase
-  for (const char *p = in; *p; ++p) {
-    if (isalnum(*p)) {
-      out[j++] = tolower(*p); //turn to lower
+    // copy only alphanumeric, in lowercase
+    for (const char *p = in; *p; ++p) {
+        if (isalnum((unsigned char)*p)) {
+            out[j++] = tolower((unsigned char)*p); //turn to lower
+        }
     }
-  }
 
-  out[j] = '\0'; //at the end, put null-terminator
+    out[j] = '\0'; //at the end, put null-terminator
 
-  // Strip trailing 's' for simple plural handling
-  if (j > 1 && out[j - 1] == 's') {
-    out[j - 1] = '\0'; //put where s used to go, to convert it to a singular word
-  }
-
+    // Strip trailing 's' for simple plural handling
+    if (j > 1 && out[j - 1] == 's') {
+        out[j - 1] = '\0'; //put where s used to go, to convert it to a singular word
+    }
 }
 
 
@@ -31,8 +30,9 @@ void normalize_word(const char *in, char *out) {
 unsigned int hash_fn(const char *key, int size) {
     unsigned long h = 5381;
     int c;
-    while ((c = *key++))
-        h = ((h << 5) + h) + c;
+    while ((c = (unsigned char)*key++)) {
+        h = ((h << 5) + h) + c;  // h * 33 + c
+    }
     return (unsigned int)(h % size);
 }
 
@@ -64,21 +64,20 @@ HashMap *create_hashmap(int size) {
 }
 
 void free_hashmap(HashMap *map) {
+    if (!map) return;
     //iterate over the slots
     for (int i = 0; i < map->size; i++) {
 
         //start with the head
         HashNode *hashnode = map->table[i];
         
-        //go throught
+        //go through the chain and free everything
         while (hashnode) {
-            //save next node foreve freeing the current
             HashNode *tmp = hashnode->next;
             free(hashnode->key);
 
     // go throught
     while (hashnode) {
-      // save next node before freeing the current
       HashNode *tmp = hashnode->next;
       free(hashnode->key);
 
@@ -90,13 +89,15 @@ void free_hashmap(HashMap *map) {
 
       free(hashnode);
       hashnode = tmp;
+    
     }
-    free(map->table);
-    free(map);
+}
+            // free the whole list of document IDs for this node
+            for (DocLinked *doclinked = hashnode->docs, *nx; doclinked; doclinked = nx) {
 }
 
 //  Insert one
-//helper that returns 1 if found, and 0 if it does not exists
+//helper that returns 1 if found, and 0 if it does not exist
 int doc_exists(DocLinked *list, int id) {
     
     // Walk the list node by node
@@ -112,12 +113,12 @@ int doc_exists(DocLinked *list, int id) {
 }
 
 // Insert a (word → docId) mapping into the hashmap.
-//you either add id to an existing word entry 
-//or create a brand-new word entry. 
-//Over all documents and words, this builds the full reverse index so lookups by word become simple
+// you either add id to an existing word entry 
+// or create a brand-new word entry. 
 void put_hashmap(HashMap *m, const char *key, int docId) {
     char norm[128];
 
+<<<<<<< Updated upstream
   // Normalize the input word
   normalize_word(key, norm);
   if (norm[0] == '\0') {
@@ -142,6 +143,12 @@ void put_hashmap(HashMap *m, const char *key, int docId) {
         h->docs = dl;
       }
       return; // done
+=======
+    // Normalize the input word
+    normalize_word(key, norm);
+    if (norm[0] == '\0') {
+        return; // empty after normalization
+>>>>>>> Stashed changes
     }
 
     // compute slot index via hash
@@ -150,28 +157,24 @@ void put_hashmap(HashMap *m, const char *key, int docId) {
     // search the chain at m->table[slot] for an existing node
     HashNode *h = m->table[slot];
     while (h) {
-        if (strcmp(h->key, norm) == 0) {
-            // found the bucket for this word
-            if (!doc_exists(h->docs, docId)) {
-                // only add if not already present
+        if (strcmp(h->key, norm) == 0) { // found the bucket for this word
+            if (!doc_exists(h->docs, docId)) { // avoid duplicates
                 DocLinked *dl = malloc(sizeof(*dl));
                 dl->doc_id = docId;
                 dl->next   = h->docs;
                 h->docs    = dl;
             }
-            return;  // done
+            return; // done
         }
         h = h->next;
     }
 
-    // if word not found then create a fresh HashNode and prepend it
+    // word not found: create a fresh HashNode and prepend it
     h = malloc(sizeof(*h));
-
-    // allocate and copy the normalized key
     h->key = malloc(strlen(norm) + 1);
     strcpy(h->key, norm);
 
-    // initialize the docs list with exactly this one docId
+    // initialize the docs list with this one docId
     h->docs = malloc(sizeof(*h->docs));
     h->docs->doc_id = docId;
     h->docs->next   = NULL;
@@ -181,6 +184,7 @@ void put_hashmap(HashMap *m, const char *key, int docId) {
     m->table[slot]  = h;
 }
 
+<<<<<<< Updated upstream
 //reverse‐index: for each normalized word, it stores a linked list of document IDs containing that word. (optimizating the code)
 // transform the collection of Documents into two hashmaps that tell you, for any given word, exactly which documents contain it
 void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDocs) {
@@ -206,15 +210,36 @@ void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDoc
           buf[pos] = '\0';
           put_hashmap(titleIdx, buf, d->id);
           pos = 0; // reset for next token
+=======
+// reverse‐index: for each normalized word, it stores a linked list of document IDs
+// containing that word
+void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDocs) {
+
+    Document *d = allDocs;
+    while (d) {
+        // index the title
+        const char *text = d->title ? d->title : "";
+        char buf[128];
+        int pos = 0;
+        for (int i = 0;; i++) {
+            char c = text[i];
+            if (c == ' ' || c == '\t' || c == '\n' || c == '\0') {
+                if (pos > 0) {
+                    buf[pos] = '\0';
+                    put_hashmap(titleIdx, buf, d->id);
+                    pos = 0;
+                }
+                if (c == '\0') break;
+            } else {
+                buf[pos++] = c;
+            }
+>>>>>>> Stashed changes
         }
 
-        //same with the body
-
+        // same with the body
         text = d->body ? d->body : "";
-        pos = 0;  // reuse buffer
-
-        // Same loop over the body text
-        for (int i = 0; ; i++) {
+        pos = 0;
+        for (int i = 0;; i++) {
             char c = text[i];
             if (c == ' ' || c == '\t' || c == '\n' || c == '\0') {
                 if (pos > 0) {
@@ -228,32 +253,10 @@ void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDoc
             }
         }
 
-        // move to next document
         d = d->next;
     }
 }
 
-<<<<<<< HEAD
-
-//This function saves your in-memory word→document map into a simple text file
-void serialize_reverse_index(HashMap *map, const char *filename) {
-
-  FILE *out = fopen(filename, "w"); //openning the file in writting mode
-  if (!out)
-    return; //error detection
-
-  for (int i = 0; i < map->size; i++) { //go though all the buckets in the hash table
-    HashNode *n = map->table[i];
-    while (n) {
-      fprintf(out, "%s", n->key); //print the key for each word in the bucket
-      DocLinked *d = n->docs;
-      while (d) {
-        fprintf(out, " %d", d->doc_id); //Walk the list of documents for that word, and for each one print a space and then the document’s ID.
-        d = d->next;
-      }
-      fprintf(out, "\n");
-      n = n->next;
-=======
 void serialize_reverse_index(HashMap *map, const char *filename) {
     FILE *out = fopen(filename, "w");
     if (!out) return;
@@ -262,27 +265,18 @@ void serialize_reverse_index(HashMap *map, const char *filename) {
         HashNode *n = map->table[i];
         while (n) {
             fprintf(out, "%s", n->key);
-            DocLinked *d = n->docs;
-            while (d) {
+            for (DocLinked *d = n->docs; d; d = d->next) {
                 fprintf(out, " %d", d->doc_id);
-                d = d->next;
             }
             fprintf(out, "\n");
             n = n->next;
         }
->>>>>>> 1bd974b0f5cb5c033e33752f131d2032f61440ba
     }
 
     fclose(out);
 }
 
 HashMap *deserialize_reverse_index(const char *filename, int size) {
-<<<<<<< HEAD
-  
-  HashMap *map = create_hashmap(size);
-  FILE *in = fopen(filename, "r");
-  if (!in)
-=======
     HashMap *map = create_hashmap(size);
     FILE *in = fopen(filename, "r");
     if (!in) return map;
@@ -290,30 +284,24 @@ HashMap *deserialize_reverse_index(const char *filename, int size) {
     char line[1024];
     while (fgets(line, sizeof(line), in)) {
         int len = strlen(line);
-        if (len > 0 && line[len-1] == '\n') {
-            line[len-1] = '\0';
-        }
+        if (len > 0 && line[len - 1] == '\n')
+            line[len - 1] = '\0';
 
-        // First token is the term
         char *tok = strtok(line, " ");
         if (!tok) continue;
         char *term = strdup(tok);
 
-        // Remaining tokens are document IDs
         while ((tok = strtok(NULL, " "))) {
             int docId = atoi(tok);
             put_hashmap(map, term, docId);
         }
-
         free(term);
     }
 
     fclose(in);
->>>>>>> 1bd974b0f5cb5c033e33752f131d2032f61440ba
     return map;
 }
 
-//Lookup one list by key 
 DocLinked *get_list(HashMap *m, const char *key) {
     char norm[128];
     normalize_word(key, norm);
@@ -325,197 +313,56 @@ DocLinked *get_list(HashMap *m, const char *key) {
     return NULL;
 }
 
-// Intersection helper 
-// Returns a new list containing only the doc_ids that appear in *both* lists a and b.
 DocLinked *intersect(DocLinked *a, DocLinked *b) {
-    DocLinked *out = NULL;     // head of our output list
-
-    // Walk every node in list a
-    for (DocLinked *pa = a; pa != NULL; pa = pa->next) {
-        // For each pa, check every node in list b
-        for (DocLinked *pb = b; pb != NULL; pb = pb->next) {
+    DocLinked *out = NULL;
+    for (DocLinked *pa = a; pa; pa = pa->next) {
+        for (DocLinked *pb = b; pb; pb = pb->next) {
             if (pa->doc_id == pb->doc_id) {
-                // We found a match! Make a new node at the front of out
-                DocLinked *n = (DocLinked*)malloc(sizeof(DocLinked));
+                DocLinked *n = malloc(sizeof(*n));
                 n->doc_id = pa->doc_id;
                 n->next   = out;
                 out       = n;
-                // Once matched, no need to keep scanning b for this pa
                 break;
             }
         }
     }
-
-    // Return the head of the intersection list (possibly NULL)
     return out;
 }
 
-<<<<<<< HEAD
-// subtraction helper
-DocLinked *subtract(DocLinked *base, DocLinked *rem) { // rem is list of documents you want to exclude from base
-  DocLinked *out = NULL;
-  for (DocLinked *b = base; b; b = b->next) {
-=======
-//subtraction helper
-DocLinked *subtract(DocLinked *base, DocLinked *rem) { //rem is list of documents you want to exclude from base
+DocLinked *subtract(DocLinked *base, DocLinked *rem) {
     DocLinked *out = NULL;
     for (DocLinked *b = base; b; b = b->next) {
->>>>>>> 1bd974b0f5cb5c033e33752f131d2032f61440ba
-
-        // if b->doc_id is *not* in the exclude list, keep it
         if (!doc_exists(rem, b->doc_id)) {
             DocLinked *n = malloc(sizeof(*n));
             n->doc_id = b->doc_id;
-            n->next = out;
-            out = n;
+            n->next   = out;
+            out       = n;
         }
     }
     return out;
 }
 
-// Convert DocLinked* → Document* list 
-
-// Given a linked list of doc IDs (`idList`) and the full list of Documents (`allDocs`),
-// build and return a new linked list of freshly-allocated Document copies
-// in the same order as the IDs in `idList`.
-
 Document *make_doc_list(DocLinked *idList, Document *allDocs) {
-    Document *resultHead = NULL;    // start of our new Document list
-    Document **resultTail = &resultHead; // pointer-to-next-field for appending
+    Document *resultHead = NULL;
+    Document **resultTail = &resultHead;
 
-    // For each ID in the idList...
     for (DocLinked *curId = idList; curId; curId = curId->next) {
-
-        // Scan the full document list to find the matching Document
         for (Document *d = allDocs; d; d = d->next) {
             if (d->id == curId->doc_id) {
-
-                // Found it: make a copy (allocates title/body anew)
                 Document *copy = CreateDocument(d->id, d->title, d->body);
-                copy->links = NULL;    // we only need id,title,body here
+                copy->links = NULL;
                 copy->next  = NULL;
-
-                // Append this copy to the end of our result list
                 *resultTail = copy;
                 resultTail  = &copy->next;
-                break; // stop scanning allDocs, move to next ID
+                break;
             }
         }
     }
-
     return resultHead;
 }
 
-<<<<<<< HEAD
-//  Search using two reverse-index hashmaps (one for titles, one for bodies).
-//  Returns a newly built list of Document* that satisfy the Query q.
-Document *search_documents_with_index(HashMap *titleIdx, HashMap *bodyIdx, Query *q, Document *allDocs) {
-  DocLinked *res = NULL; // intermediate list of matching doc IDs
-  int first = 1;
-=======
-//main search routine
-// Search using two reverse-index hashmaps (one for titles, one for bodies).
-// Returns a newly built list of Document* that satisfy the Query q.
-Document *search_documents_with_index(HashMap *titleIdx, HashMap *bodyIdx, Query   *q, Document* allDocs) {
-    DocLinked *res   = NULL;   // intermediate list of matching doc IDs
-    int first = 1;      
->>>>>>> 1bd974b0f5cb5c033e33752f131d2032f61440ba
-
-    //first we handle all INCLUDE keywords
-    for (QueryNode *n = q->head; n; n = n->next) {
-        if (n->exclude) continue;  // skip any exclusion terms here
-
-        // look up this keyword in both title and body indexes
-        DocLinked *fromTitle = get_list(titleIdx, n->keyword);
-        DocLinked *fromBody  = get_list(bodyIdx,  n->keyword);
-        // pick whichever list is non-NULL (title hits preferred)
-        DocLinked *current   = fromTitle ? fromTitle : fromBody;
-
-        // if no documents contain this include-keyword, result is empty
-        if (!current) {
-            res   = NULL;
-            first = 0;
-            break;
-        }
-
-        if (first) {
-            // First include: seed `res` with every doc in `current`
-            for (DocLinked *p = current; p; p = p->next) {
-                DocLinked *node = malloc(sizeof(*node));
-                node->doc_id = p->doc_id;
-                node->next   = res;
-                res          = node;
-            }
-            first = 0;
-        } else {
-            // Subsequent includes: intersect existing `res` with `current`
-            DocLinked *intersection = intersect(res, current);
-
-            // free old `res` list
-            for (DocLinked *p = res, *nx; p; p = nx) {
-                nx = p->next;
-                free(p);
-            }
-            // replace with intersection
-            res = intersection;
-        }
-    }
-
-    // If there were NO include terms at all, we start with *all* documents
-    if (first) {
-        for (Document *d = allDocs; d; d = d->next) {
-            DocLinked *node = malloc(sizeof(*node));
-            node->doc_id = d->id;
-            node->next   = res;
-            res          = node;
-        }
-    }
-
-    // finally handle EXCLUDE keywords
-    for (QueryNode *n = q->head; n; n = n->next) {
-        if (!n->exclude) continue;  // skip non-exclusion terms
-
-        // Build a combined list of docs that mention this excluded word
-        DocLinked *titleHits = get_list(titleIdx, n->keyword);
-        DocLinked *bodyHits  = get_list(bodyIdx,  n->keyword);
-
-        // If there are both title and body hits, chain them into one list
-        DocLinked *allHits = titleHits;
-        if (bodyHits) {
-            // find end of bodyHits
-            DocLinked *p = bodyHits;
-            while (p->next) p = p->next;
-            // append titleHits afterward
-            p->next = titleHits;
-            allHits = bodyHits;
-        }
-
-        // Subtract these `allHits` from our current result set `res`
-        DocLinked *pruned = subtract(res, allHits);
-
-        // free old `res` list
-        for (DocLinked *p = res, *nx; p; p = nx) {
-            nx = p->next;
-            free(p);
-        }
-        // update `res`
-        res = pruned;
-    }
-
-    // we turn our ID list `res` into a real Document* list
-    Document *out = make_doc_list(res, allDocs);
-
-    //free everything
-    for (DocLinked *p = res, *nx; p; p = nx) {
-        nx = p->next;
-        free(p);
-    }
-
-    return out;
-}
-
-
-// Snippet printer(short piece of the body arounf the matching word). If no match, just prints the first 100 chars.
+// Snippet printer(short piece of the body around the matching word). If no match,
+// just prints the first 100 chars.
 void print_snippet(const char *body, Query *q){
     int bodylen = strlen(body);
     int kwlen = 0;
@@ -525,7 +372,6 @@ void print_snippet(const char *body, Query *q){
     for (QueryNode *n = q->head; n; n = n->next) {
         if (n->exclude) continue;
         kwlen = strlen(n->keyword);
-        // simple case-insensitive search
         for (int i = 0; i + kwlen <= bodylen; i++) {
             int j;
             for (j = 0; j < kwlen; j++) {
@@ -538,7 +384,6 @@ void print_snippet(const char *body, Query *q){
         if (match >= 0) break;
     }
 
-    // 2)snipped: 50 chars before, 50 after match
     int start = (match >= 0 ? match - 50 : 0);
     if (start < 0) start = 0;
 
@@ -547,28 +392,23 @@ void print_snippet(const char *body, Query *q){
         end = match + kwlen + 50;
         if (end > bodylen) end = bodylen;
     } else {
-        // no match: show first 60 chars
         end = bodylen < 100 ? bodylen : 100;
     }
 
-    // the snippet in a fixed buffer, adding “...” if we clipped
     char buf[128];
     int pos = 0;
 
-    if (match >= 0) {
-        // prefix ellipsis if we started > 0
-        if (start > 0 && pos < (int)sizeof(buf) - 1) {
-            buf[pos++] = '.';
-            buf[pos++] = '.';
-            buf[pos++] = '.';
-        }
+    if (match >= 0 && start > 0 && pos < (int)sizeof(buf) - 1) {
+        buf[pos++] = '.';
+        buf[pos++] = '.';
+        buf[pos++] = '.';
     }
 
-    // copy the body[start..end-1] into buf
     for (int i = start; i < end && pos < (int)sizeof(buf) - 1; i++) {
         buf[pos++] = body[i];
     }
 
+<<<<<<< Updated upstream
     if (match >= 0) {
         // suffix ellipsis if we didn’t reach the end
         if (end < bodylen && pos < (int)sizeof(buf) - 1) {
@@ -576,11 +416,184 @@ void print_snippet(const char *body, Query *q){
             buf[pos++] = '.';
             buf[pos++] = '.';
         }
+=======
+    if (match >= 0 && end < bodylen && pos < (int)sizeof(buf) - 1) {
+        buf[pos++] = '.';
+        buf[pos++] = '.';
+        buf[pos++] = '.';
+>>>>>>> Stashed changes
     }
 
-    buf[pos] = '\0';  // null-terminate
+    buf[pos] = '\0';
     printf("%s\n", buf);
 }
 
+Document *search_documents_with_index(HashMap *titleIdx, HashMap *bodyIdx, Query *q, Document *allDocs) {
+  DocLinked *res = NULL; // intermediate list of matching doc IDs
+  int first = 1;
+
+  // --- 1) INCLUDE phase ---
+  for (QueryNode *n = q->head; n; n = n->next) {
+    if (n->exclude)
+      continue;
+
+    // Build 'hits' for this keyword (with OR‐logic)
+    DocLinked *hits = NULL;
+    if (strchr(n->keyword, '|')) {
+      // OR‐group: split on '|' after stripping '(' ')' and spaces
+      char *kw = strdup(n->keyword), *save = kw;
+      char *r = kw, *p = kw;
+      while (*p) {
+        if (*p != '(' && *p != ')' && *p != ' ')
+          *r++ = *p;
+        p++;
+      }
+      *r = '\0';
+
+      char *tok = strtok(kw, "|");
+      while (tok) {
+        // pick title hits if present, else body hits
+        DocLinked *t = get_list(titleIdx, tok);
+        DocLinked *b = get_list(bodyIdx, tok);
+        DocLinked *src = t ? t : b;
+
+        // union into 'hits', avoiding duplicates
+        for (DocLinked *d = src; d; d = d->next) {
+          int exists = 0;
+          for (DocLinked *u = hits; u; u = u->next) {
+            if (u->doc_id == d->doc_id) {
+              exists = 1;
+              break;
+            }
+          }
+          if (!exists) {
+            DocLinked *node = malloc(sizeof(*node));
+            node->doc_id = d->doc_id;
+            node->next = hits;
+            hits = node;
+          }
+        }
+        tok = strtok(NULL, "|");
+      }
+      free(save);
+    } else {
+      // simple keyword: title or body
+      DocLinked *t = get_list(titleIdx, n->keyword);
+      hits = t ? t : get_list(bodyIdx, n->keyword);
+    }
+
+    // If nothing matches this include → empty result
+    if (!hits) {
+      for (DocLinked *x = res, *nx; x; x = nx) {
+        nx = x->next;
+        free(x);
+      }
+      res = NULL;
+      first = 0;
+      break;
+    }
+
+    if (first) {
+      // seed res = copy of hits
+      for (DocLinked *d = hits; d; d = d->next) {
+        DocLinked *node = malloc(sizeof(*node));
+        node->doc_id = d->doc_id;
+        node->next = res;
+        res = node;
+      }
+      first = 0;
+    } else {
+      // intersect res ∩ hits
+      DocLinked *inter = intersect(res, hits);
+      // free old res
+      for (DocLinked *x = res, *nx; x; x = nx) {
+        nx = x->next;
+        free(x);
+      }
+      res = inter;
+    }
+  }
+
+  // --- 2) If no includes at all, start with *all* docs ---
+  if (first) {
+    for (Document *d = allDocs; d; d = d->next) {
+      DocLinked *node = malloc(sizeof(*node));
+      node->doc_id = d->id;
+      node->next = res;
+      res = node;
+    }
+  }
+
+  // --- 3) EXCLUDE phase ---
+  for (QueryNode *n = q->head; n; n = n->next) {
+    if (!n->exclude)
+      continue;
+
+    // Build hits list exactly as above
+    DocLinked *hits = NULL;
+    if (strchr(n->keyword, '|')) {
+      char *kw = strdup(n->keyword), *save = kw;
+      char *r = kw, *p = kw;
+      while (*p) {
+        if (*p != '(' && *p != ')' && *p != ' ')
+          *r++ = *p;
+        p++;
+      }
+      *r = '\0';
+
+      char *tok = strtok(kw, "|");
+      while (tok) {
+        DocLinked *t = get_list(titleIdx, tok);
+        DocLinked *b = get_list(bodyIdx, tok);
+        DocLinked *src = t ? t : b;
+        for (DocLinked *d = src; d; d = d->next) {
+          int exists = 0;
+          for (DocLinked *u = hits; u; u = u->next) {
+            if (u->doc_id == d->doc_id) {
+              exists = 1;
+              break;
+            }
+          }
+          if (!exists) {
+            DocLinked *node = malloc(sizeof(*node));
+            node->doc_id = d->doc_id;
+            node->next = hits;
+            hits = node;
+          }
+        }
+        tok = strtok(NULL, "|");
+      }
+      free(save);
+    } else {
+      DocLinked *t = get_list(titleIdx, n->keyword);
+      hits = t ? t : get_list(bodyIdx, n->keyword);
+    }
+
+    if (!hits)
+      continue;
+
+    // subtract hits from res
+    DocLinked *pruned = subtract(res, hits);
+    for (DocLinked *x = res, *nx; x; x = nx) {
+      nx = x->next;
+      free(x);
+    }
+    res = pruned;
+
+    // clean up hits
+    for (DocLinked *x = hits, *nx; x; x = nx) {
+      nx = x->next;
+      free(x);
+    }
+  }
+
+  // --- 4) Convert to Document* list & final cleanup ---
+  Document *out = make_doc_list(res, allDocs);
+  for (DocLinked *x = res, *nx; x; x = nx) {
+    nx = x->next;
+    free(x);
+  }
+  return out;
+}
 
  dv ,

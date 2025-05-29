@@ -123,13 +123,8 @@ Document *sort_documents_by_relevance(Document *list, DocumentGraph *g) {
     return sorted;
 }
 
-<<<<<<< HEAD
-double *compute_pagerank(DocumentGraph *g, int max_iters, double d, double tol) {
-=======
-double *compute_pagerank(DocumentGraph *g, int max_iters, double d, double tol){
+double *compute_pagerank(DocumentGraph *g, int max_iters, double d , double tol) {
     int n = g->numdocs;
->>>>>>> 1bd974b0f5cb5c033e33752f131d2032f61440ba
-
     // 1) Allocate arrays
     double *rank   = malloc(sizeof(double) * n);
     double *newr   = malloc(sizeof(double) * n);
