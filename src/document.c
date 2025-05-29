@@ -76,7 +76,7 @@ Document *CreateDocument(int id, const char *title, const char *body) {
         doc->body = NULL;
     }
 
-    doc->relevance = 0.0f;        // Initial relevance score
+    doc->relevance = 0.0;        // Initial relevance score
 
     doc->links     = LinksInit(); // Initialize empty list of links
     

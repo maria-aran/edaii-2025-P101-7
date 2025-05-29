@@ -146,7 +146,7 @@ void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDoc
     // first we will index the title
     //  Pointer to the title string (or empty if NULL)
     const char *text = d->title ? d->title : "";
-    char buf[128];
+    char buf[1208];
     int pos = 0;
 
     // Iterate throught each letter of the title
