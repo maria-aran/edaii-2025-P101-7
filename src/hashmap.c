@@ -5,7 +5,6 @@
 #include <strings.h>  
 #include <stdio.h>    
 
-<<<<<<< HEAD
 // Do not take into account lower/upper cases, punctuation..
 //Takes input word in, writes a normalized version on out
 void normalize_word(const char *in, char *out) {
@@ -29,38 +28,6 @@ void normalize_word(const char *in, char *out) {
 
 
 // DJB2 hash function: : returns an index in [0, size) for where to store/look up key.
-=======
-//Do not take into account lower/upper cases, punctuation..
-void normalize_word(const char *in, char *out) {
-
-    int pos = 0;
-    char c;
-
-    // while c isnt the null-terminator
-    while ((c = *in) != '\0') {
-        if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) { //And is either number, a letter(either upper or lower case)
-            break;
-        }
-        in++; //go to the next letter
-    }
-
-    // Copy letters/digits
-    while ((c = *in) != '\0') {
-        if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
-            out[pos++] = tolower((unsigned char)c); 
-            in++;
-        } else {
-            // stop as soon as we see punctuation or whitespace
-            break;
-        }
-    }
-
-    // Null-terminate the new string
-    out[pos] = '\0';
-}
-
-//DJB2 hash function 
->>>>>>> 1bd974b0f5cb5c033e33752f131d2032f61440ba
 unsigned int hash_fn(const char *key, int size) {
     unsigned long h = 5381;
     int c;
@@ -72,7 +39,6 @@ unsigned int hash_fn(const char *key, int size) {
 //  Create and free 
 HashMap *create_hashmap(int size) {
 
-<<<<<<< HEAD
   // Allocate the HashMap structure
   HashMap *m = malloc(sizeof(*m));
   if (!m){ //error detection
@@ -88,20 +54,6 @@ HashMap *create_hashmap(int size) {
     free(m);
     return NULL;
   }
-=======
-    // Allocate the HashMap structure
-    HashMap *m = malloc(sizeof(*m));
-    if (!m) return NULL;
-
-    m->size = size;
-
-    // Allocate the table array
-    m->table = malloc(size * sizeof(*m->table));
-    if (!m->table) {
-        free(m);
-        return NULL;
-    }
->>>>>>> 1bd974b0f5cb5c033e33752f131d2032f61440ba
 
     // Initialize each slot to NULL 
     for (int i = 0; i < size; i++) {
@@ -124,7 +76,6 @@ void free_hashmap(HashMap *map) {
             HashNode *tmp = hashnode->next;
             free(hashnode->key);
 
-<<<<<<< HEAD
     // go throught
     while (hashnode) {
       // save next node before freeing the current
@@ -139,16 +90,6 @@ void free_hashmap(HashMap *map) {
 
       free(hashnode);
       hashnode = tmp;
-=======
-            //free the whole list of document for the corresponding node
-            for (DocLinked *doclinked = hashnode->docs, *nx; doclinked; doclinked = nx) {
-                nx = doclinked->next;
-                free(doclinked);
-            }
-            free(hashnode);
-            hashnode = tmp;
-        }
->>>>>>> 1bd974b0f5cb5c033e33752f131d2032f61440ba
     }
     free(map->table);
     free(map);
@@ -177,7 +118,6 @@ int doc_exists(DocLinked *list, int id) {
 void put_hashmap(HashMap *m, const char *key, int docId) {
     char norm[128];
 
-<<<<<<< HEAD
   // Normalize the input word
   normalize_word(key, norm);
   if (norm[0] == '\0') {
@@ -202,12 +142,6 @@ void put_hashmap(HashMap *m, const char *key, int docId) {
         h->docs = dl;
       }
       return; // done
-=======
-    // Normalize the input word
-    normalize_word(key, norm);
-    if (norm[0] == '\0') {
-        return;
->>>>>>> 1bd974b0f5cb5c033e33752f131d2032f61440ba
     }
 
     // compute slot index via hash
@@ -247,7 +181,6 @@ void put_hashmap(HashMap *m, const char *key, int docId) {
     m->table[slot]  = h;
 }
 
-<<<<<<< HEAD
 //reverse‐index: for each normalized word, it stores a linked list of document IDs containing that word. (optimizating the code)
 // transform the collection of Documents into two hashmaps that tell you, for any given word, exactly which documents contain it
 void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDocs) {
@@ -273,36 +206,6 @@ void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDoc
           buf[pos] = '\0';
           put_hashmap(titleIdx, buf, d->id);
           pos = 0; // reset for next token
-=======
-//Build both indexes, for every document, extract the words form the title and body into hashmaps
-void build_reverse_indexes(HashMap *titleIdx, HashMap *bodyIdx, Document *allDocs) {
-
-    Document *d = allDocs;
-    while (d) {
-        //first we will index the title
-        // Pointer to the title string (or empty if NULL)
-        const char *text = d->title ? d->title : "";
-        char buf[128];   
-        int pos = 0; 
-
-        // Iterate throught each letter of the title
-        for (int i = 0; ; i++) {
-            char c = text[i];
-            // If we hit whitespace or end-of-string...
-            if (c == ' ' || c == '\t' || c == '\n' || c == '\0') {
-                if (pos > 0) {
-                    // terminate the token and insert it
-                    buf[pos] = '\0';
-                    put_hashmap(titleIdx, buf, d->id);
-                    pos = 0;  // reset for next token
-                }
-                // if it was the end, break out
-                if (c == '\0') break;
-            } else {
-                // normal character → accumulate in buf
-                buf[pos++] = c;
-            }
->>>>>>> 1bd974b0f5cb5c033e33752f131d2032f61440ba
         }
 
         //same with the body
@@ -669,7 +572,7 @@ void print_snippet(const char *body, Query *q){
     if (match >= 0) {
         // suffix ellipsis if we didn’t reach the end
         if (end < bodylen && pos < (int)sizeof(buf) - 1) {
-            buf[pos++] = '.';
+            buf[pos++] = '.'; dv ,
             buf[pos++] = '.';
             buf[pos++] = '.';
         }
@@ -680,3 +583,4 @@ void print_snippet(const char *body, Query *q){
 }
 
 
+ dv ,

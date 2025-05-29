@@ -35,7 +35,7 @@ int main(void) {
         for (Link *l = d->links->next; l; l = l->next)
             graph_add_edge(g, d->id, l->id);
     }
-    // precompute PageRank scores once
+    // precompute PageRank scores oncez<
     double *pageRanks = compute_pagerank(g, PR_ITERS, PR_DAMPING, PR_TOL);
 
     char input[MAX_QUERY_LEN+1];
