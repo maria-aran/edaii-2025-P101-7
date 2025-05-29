@@ -76,7 +76,10 @@ int main(void) {
 
         // c) Parse & record
         Query *q = CreateQuery(input);
-        AddQueryToHistory(&history, q);
+        /* snapshot the query text for history and then free the Query */
+        char *qsnap = QueryToString(q);
+        AddQueryToHistory(&history, qsnap);
+        free(qsnap);
 
         // d) Search & rank
         Document *hits   = search_documents_with_index(titleIdx, bodyIdx, q, docs);
@@ -109,6 +112,7 @@ int main(void) {
         if (idx < 0 || idx >= printed) {
             // New search
             FreeDocument(ranked);
+            FreeQuery(q);
             continue;
         }
 

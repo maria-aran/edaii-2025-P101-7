@@ -20,7 +20,7 @@ typedef struct Query {
 
 // Query history: stores last 3 queries
 typedef struct {
-  Query *slots[HISTORY_CAPACITY]; // Array of queries
+  char *slots[HISTORY_CAPACITY]; // Array of queries --> changed into an array of string to prevent segmentation error
   int front;                      // Index of oldest query
   int count;                      // Number of queries stored
 } QueryHistory;
@@ -38,7 +38,7 @@ Document *LinearSearchDocuments(Document *docs, Query *query);
 void InitQueryHistory(QueryHistory *history);
 
 // Add query to history
-void AddQueryToHistory(QueryHistory *history, Query *query);
+void AddQueryToHistory(QueryHistory *history, const char *queryStr);
 
 // Print query history
 void PrintQueryHistory(const QueryHistory *history);
@@ -48,5 +48,8 @@ void FreeQueryHistory(QueryHistory *history);
 
 // helper
 int match_term(const char *text, const char *term);
+
+//turns query into a string to preventent segmentation error
+char *QueryToString(const Query *q);
 
 #endif

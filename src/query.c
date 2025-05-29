@@ -296,15 +296,16 @@ void InitQueryHistory(QueryHistory *history) {
 }
 
 /* Enqueue, dropping oldest if full */
-void AddQueryToHistory(QueryHistory *history, Query *query) {
+void AddQueryToHistory(QueryHistory *history, const char *queryStr) {
+
   if (history->count == HISTORY_CAPACITY) {
-    FreeQuery(history->slots[history->front]);
+    free(history->slots[history->front]);    
     history->slots[history->front] = NULL;
     history->front = (history->front + 1) % HISTORY_CAPACITY;
     history->count--;
   }
   int idx = (history->front + history->count) % HISTORY_CAPACITY;
-  history->slots[idx] = query;
+  history->slots[idx] = strdup(queryStr);
   history->count++;
 }
 
@@ -314,27 +315,19 @@ void PrintQueryHistory(const QueryHistory *history) {
     printf("(none)\n");
     return;
   }
-  for (int i = 0; i < history->count; i++) {
-    int idx = (history->front + i) % HISTORY_CAPACITY;
-    Query *q = history->slots[idx];
-    for (QueryNode *n = q->head; n; n = n->next) {
-      printf("%s%s", n->exclude ? "-" : "", n->keyword);
-      if (n->next)
-        printf(" ");
+    for (int i = 0; i < history->count; i++) {
+        int idx = (history->front + i) % HISTORY_CAPACITY;
+        printf("%s\n", history->slots[idx]);
     }
-    printf("\n");
-  }
 }
 
 /* Free any remaining queries */
 void FreeQueryHistory(QueryHistory *history) {
   for (int i = 0; i < history->count; i++) {
-    int idx = (history->front + i) % HISTORY_CAPACITY;
-    FreeQuery(history->slots[idx]);
-    history->slots[idx] = NULL;
-  }
-  history->front = 0;
-  history->count = 0;
+        int idx = (history->front + i) % HISTORY_CAPACITY;
+        free(history->slots[idx]);
+    }
+    history->count = history->front = 0;
 }
 
 // Helper to not take into account upper and lower cases and plurals or
@@ -392,4 +385,30 @@ int match_term(const char *text, const char *term) {
   }
 
   return 0;
+}
+
+char *QueryToString(const Query *q) {
+    // first, compute total length
+    int len = 0;
+    for (const QueryNode *n = q->head; n; n = n->next) {
+        len += strlen(n->keyword) + 2;  // for possible '-' + space
+    }
+    if (len == 0) {
+        return strdup("");
+    }
+    // allocate result
+    char *out = malloc(len + 1);
+    char *p   = out;
+    for (const QueryNode *n = q->head; n; n = n->next) {
+        if (n->exclude) {
+            *p++ = '-';
+        }
+        int k = strlen(n->keyword);
+        memcpy(p, n->keyword, k);
+        p += k;
+        *p++ = ' ';
+    }
+    // overwrite final space with '\0'
+    p[-1] = '\0';
+    return out;
 }
