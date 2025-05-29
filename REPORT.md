@@ -6,16 +6,16 @@
 
 
 ### Runtime Complexity Analysis Report Table
-##### Now, we will present the runtime complexity analysis for various operations in our and search system.
+#### Now, we will present the runtime complexity analysis for various operations in our and search system.
 | Description  | Big O | Justification |
 | ------------- |:-------------:|:-------------:|
 | Parsing a document into the struct (document_desserialize)    | right foo     | right foo     |
-| Parsing a query into the struct      | right bar     | right bar     |
-| Counting the neighbours in the graph      | right baz     | right baz     |
-| Counting the neighbours of a document in the graph     | right baz     | right baz     |
+| Parsing a query into the struct (CreateQuery)     | right bar     | right bar     |
+| Counting the neighbours in the graph  (graph_get_indegree)   | right baz     | right baz     |
+| Counting the neighbours of a document in the graph (graph_get_indegree, same function, but applied specifically to a document by ID)    | right baz     | right baz     |
 | Finding the documents that contain a keyword in the reverse-index      | right baz     | right baz     |
-| Finding the documents that match all keywords in the query | right baz     | right baz     |
-| sorting the documents according to the relevance score | right baz     | right baz     |
+| Finding the documents that match all keywords in the query (LinearSearchDocuments) | right baz     | right baz     |
+| Sorting the documents according to the relevance score (sort_documents_by_relevance) | right baz     | right baz     |
 
 ### Search time with/without the reverse index for the different-sized datasets
 x

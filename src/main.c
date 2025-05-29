@@ -19,7 +19,7 @@
 
 int main(void) {
     // 1) Load all docs into the list
-    Document *docs = LoadDocumentsFromFolder("datasets/wikipedia12");
+    Document *docs = LoadDocumentsFromFolder("datasets/wikipedia5400");
 
     // 2) Init reverse index (hashmaps)
     HashMap *titleIdx = create_hashmap(TITLE_MAP_SIZE);
