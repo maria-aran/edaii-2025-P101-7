@@ -32,7 +32,8 @@ void print_relevance_score(const DocumentGraph *g, int dst);
 void graph_free(DocumentGraph *g);
 
 // Sorts a Document* list by descending indegree in graph g.
-Document *sort_documents_by_relevance(Document *list, DocumentGraph *g);
+// Sort the list by the Document->relevance score (descending) using insertion sort.
+Document *sort_documents_by_relevance(Document *list);
 
 double *compute_pagerank(DocumentGraph *g, int max_iters, double d, double tol);
 

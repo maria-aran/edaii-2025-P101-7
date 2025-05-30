@@ -10,6 +10,7 @@
 #include <string.h>
 
 #define TITLE_MAP_SIZE 100000
+#define MAX_LENGTH 500
 #define BODY_MAP_SIZE 200000
 #define MAX_QUERY_LEN 200
 #define MAX_RESULTS 5
@@ -19,94 +20,167 @@
 
 
 int main() {
-    // 1) Load all docs into the list
-    Document *docs = LoadDocumentsFromFolder("datasets/wikipedia12");
-    if (!docs) {
+
+  printf("Oppenning....\n\n");
+
+  printf("How big do you want the data set to be\n");
+  printf("Options: 12, 270, 540, 5400 (12 recommended): " );
+
+  int datasetinput;
+
+  scanf("%d", &datasetinput);
+
+  const char *dataset;  
+
+  if(datasetinput == 12){
+    dataset = "datasets/wikipedia12";
+
+  } else if( datasetinput == 270){
+    dataset = "datasets/wikipedia270";
+
+  }else if (datasetinput == 540){
+    dataset = "datasets/wikipedia540";
+  }
+
+  // Load all docs into the list
+  Document *docs = LoadDocumentsFromFolder(dataset);
+    if (!docs) { //er
         fprintf(stderr, "No documents loaded.\n");
         return EXIT_FAILURE;
     }
-    // 2) Load or build reverse indexes
+    printf("Dataset with %d documents loaded\n\n", datasetinput);
+
+
+
+    // load reverse indexes
     HashMap *titleIdx = deserialize_reverse_index("title.idx", TITLE_MAP_SIZE);
     HashMap *bodyIdx = deserialize_reverse_index("body.idx", BODY_MAP_SIZE);
-    if (!titleIdx || !bodyIdx) {
+    if (!titleIdx || !bodyIdx) { //if either loading couldn't be done (missing file or corrupted)
         if (!titleIdx)
-        titleIdx = create_hashmap(TITLE_MAP_SIZE);
+        titleIdx = create_hashmap(TITLE_MAP_SIZE); //create the hasham (for title)
         if (!bodyIdx)
-        bodyIdx = create_hashmap(BODY_MAP_SIZE);
-        build_reverse_indexes(titleIdx, bodyIdx, docs);
+        bodyIdx = create_hashmap(BODY_MAP_SIZE); //create the hashmap (for body)
+
+        // Build reverse indexes from scratch by scanning all documents:
+        // - titleIdx: for fast title-only lookups
+        // - bodyIdx:  for full‐text lookups
+        build_reverse_indexes(titleIdx, bodyIdx, docs); 
+
+        // Save the newly built indexes for faster startup next time
         serialize_reverse_index(titleIdx, "title.idx");
         serialize_reverse_index(bodyIdx, "body.idx");
     }
 
-    // 3) Init the graph
-    //    iterate through all docs and add edges
-  // 3) Build document graph
+    //Build the document link graph
+    // Each document becomes a node, and every outbound link adds a directed edge.
         int numDocs = 0;
         for (Document *d = docs; d; d = d->next)
-            ++numDocs;
-        DocumentGraph *g = graph_create(numDocs);
+            ++numDocs; //first coumpute the number of docs
+
+        //Now create the graph and populate it
+        DocumentGraph *g = graph_create(numDocs); //create the graph with the number of docs
         for (Document *d = docs; d; d = d->next) {
+        // Skip the dummy head in d->links; start from the first real link
             for (Link *l = d->links->next; l; l = l->next) {
             graph_add_edge(g, d->id, l->id);
+            // add a directed edge from document d->id to the linked page l->id
+
             }
         }
 
+    //Loading (or computing) Page scores!
     int pr_count;
-    double *pageRanks = load_relevance_scores("pageranks.dat", &pr_count);
-    if (!pageRanks || pr_count != numDocs) {
+    double *pageRanks = load_relevance_scores("pageranks", &pr_count); //pageranks should be replaced by actual docs
+    
+    //If loading failed or the saved count doesn’t match current docs, compute
+    if (!pageRanks || pr_count != numDocs) { 
+
+        //clean up (just in case)
         free(pageRanks);
+
+        //compute them and save them
+
+        // Compute PageRank over the link graph with given parameters:
+        // - PR_ITERS: maximum iterations
+        // - PR_DAMPING: probability of following links vs. random jump
+        // - PR_TOL: convergence tolerance
+
         pageRanks = compute_pagerank(g, PR_ITERS, PR_DAMPING, PR_TOL);
-        save_relevance_scores("pageranks.dat", pageRanks, numDocs);
+        save_relevance_scores("pageranks", pageRanks, numDocs);
     }
-      // 5) Initialize query history
+
+  //Initialize query history
   QueryHistory history;
   InitQueryHistory(&history);
 
-  // 6) Main REPL
   char input[MAX_QUERY_LEN + 1];
+
+  //repeatedly prompt for a search, show results, and optionally display a document’s full text.
   while (1) {
-    // a) Show recent searches
+
+    //Show recent searches
     printf("******* recent searches ********\n");
     PrintQueryHistory(&history);
     printf("********************************\n\n");
 
-        // b) Read user query
-    printf("Search: ");
-    if (!fgets(input, sizeof input, stdin))
+    
+    //Read user prompt
+    printf("Search (\"exit\" to leave): ");
+    scanf("%s", input);
+
+
+    if (strcmp(input, "exit") == 0) { //if user enters exit --> stop
       break;
-    input[strcspn(input, "\n")] = '\0';
-    if (input[0] == '\0')
-      break;
-    // c) Parse & record
+    }
+
+
+    // Query:
+
+    //create it 
     Query *q = CreateQuery(input);
+
+    //turn it into a string ( to prevent segmentation errors)
     char *qsnap = QueryToString(q);
+    //enqueu new query
     AddQueryToHistory(&history, qsnap);
     free(qsnap);
-    // d) Search & rank
+
+
+    // Execute the search using reverse indexes, then sort by PageRank
     Document *hits = search_documents_with_index(titleIdx, bodyIdx, q, docs);
-    Document *ranked = sort_documents_by_relevance(hits, g);
-     // e) Display top results
+    // assign PageRank scores to each result
+    for (Document *d = hits; d; d = d->next) {
+      d->relevance = pageRanks[d->id];
+    }
+
+    // sort by that relevance field
+    Document *ranked = sort_documents_by_relevance(hits);
+
+     //Display top results
     printf("\n-- Top %d by PageRank --\n", MAX_RESULTS);
+
     int printed = 0;
-    for (Document *d = ranked; d && printed < MAX_RESULTS;
-         d = d->next, ++printed) {
+    for (Document *d = ranked; d && printed < MAX_RESULTS; d = d->next, ++printed) {
       printf(" [%d] %s\n", printed, d->title ? d->title : "(no title)");
       print_snippet(d->body, q);
       printf("    PageRank: %.6f\n\n", pageRanks[d->id]);
     }
-    printf(" [%d results]\n\n", printed);
-    // f) Prompt for detail or new search
+
+    printf(" [%d results]\n\n", printed); 
+
+    // Prompt for detail or new search
     printf("Choose document index for details (-1 to new search): ");
+
     int idx;
     if (scanf("%d", &idx) != 1) {
       // Bad input: clear stdin and start new search
       int c;
-      while ((c = getchar()) != '\n' && c != EOF)
-        ;
+      while ((c = getchar()) != '\n' && c != EOF);
       FreeDocument(ranked);
       FreeQuery(q);
       continue;
     }
+
     while (getchar() != '\n') ;  // consume leftover newline
 
     if (idx < 0 || idx >= printed) {
@@ -116,7 +190,7 @@ int main() {
       continue;
     }
 
-    // g) Valid index: show full document
+    // Valid index: show full document
     Document *cur = ranked;
     for (int i = 0; i < idx; i++)
       cur = cur->next;
@@ -134,7 +208,7 @@ int main() {
     FreeDocument(ranked);
     FreeQuery(q);
   }
-  // 7) Cleanup
+  // Cleanup
   FreeQueryHistory(&history);
   graph_free(g);
   free(pageRanks);

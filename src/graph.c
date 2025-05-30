@@ -91,37 +91,35 @@ void graph_free(DocumentGraph *g) {
     free(g);
 }
 
-Document *sort_documents_by_relevance(Document *list, DocumentGraph *g) {
-
-    Document *sorted = NULL;         // head of new, sorted list
-    Document *current = list;        // node we’re inserting next
+// Sort the list by the Document->relevance score (descending) using insertion sort.
+Document *sort_documents_by_relevance(Document *list) {
+    Document *sorted  = NULL;
+    Document *current = list;
 
     while (current) {
+        Document *next   = current->next;
+        double  curScore = current->relevance;
 
-        Document *next = current->next;    // save remainder of original list
-        int curScore = graph_get_indegree(g, current->id);
-
-        // If empty OR current’s score > head’s score, insert at head
-        if (!sorted || graph_get_indegree(g, sorted->id) < curScore) {
+        // Insert at head if list empty or current’s score > head’s score
+        if (!sorted || sorted->relevance < curScore) {
             current->next = sorted;
-            sorted = current;
-
+            sorted        = current;
         } else {
-            // Otherwise walk until you find a node whose next has lower score
+            // Walk to find insertion point
             Document *p = sorted;
-            while (p->next && graph_get_indegree(g, p->next->id) >= curScore) {
+            while (p->next && p->next->relevance >= curScore) {
                 p = p->next;
             }
-            // Insert current after p
             current->next = p->next;
-            p->next = current;
+            p->next       = current;
         }
 
-        current = next;  // move on to the next original node
+        current = next;
     }
 
     return sorted;
 }
+
 
 double *compute_pagerank(DocumentGraph *g, int max_iters, double d , double tol) {
     int n = g->numdocs;
