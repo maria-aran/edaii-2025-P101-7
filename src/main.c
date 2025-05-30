@@ -49,6 +49,10 @@ int main() {
         return EXIT_FAILURE;
     }
     printf("Dataset with %d documents loaded\n\n", datasetinput);
+ {
+   int _c;
+   while ((_c = getchar()) != '\n' && _c != EOF);
+ }
 
 
 
@@ -126,7 +130,13 @@ int main() {
     
     //Read user prompt
     printf("Search (\"exit\" to leave): ");
-    scanf("%s", input);
+
+    // read the full line including spaces
+    if (!fgets(input, sizeof(input), stdin)) {
+        break; // EOF or error
+    }
+   // strip trailing newline
+    input[strcspn(input, "\n")] = '\0';
 
 
     if (strcmp(input, "exit") == 0) { //if user enters exit --> stop
@@ -169,7 +179,7 @@ int main() {
     printf(" [%d results]\n\n", printed); 
 
     // Prompt for detail or new search
-    printf("Choose document index for details (-1 to new search): ");
+    printf("Choose document index for details (-1 to new search): \n");
 
     int idx;
     if (scanf("%d", &idx) != 1) {

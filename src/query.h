@@ -16,6 +16,7 @@ typedef struct QueryNode {
 // Query: list of query nodes
 typedef struct Query {
     QueryNode *head; // Head of query nodes
+    QueryNode *tail;
 } Query;
 
 // Query history: stores last 3 queries

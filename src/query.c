@@ -56,6 +56,7 @@ Query *queryInit(const char *str) {
       free(kw);
       continue;
     }
+    
 
     // prepend node
     QueryNode *n = malloc(sizeof(*n));
@@ -73,77 +74,85 @@ Query *queryInit(const char *str) {
 
 // Create a query from a string (e.g., "cute cat -dog").
 Query *CreateQuery(const char *str) {
-
-  if (!str) //error detection
-    return NULL;
-
-  Query *query = malloc(sizeof(*query));
-  if (!query) //error detection
-    return NULL;
-  query->head = NULL;
-
-  // Make a modifiable copy of the input string
-  char *input = strdup(str);
-  if (!input) { //error detection
-    free(query);
-    return NULL;
-  }
-
-  char *p = input;
-  while (*p) {
-    // Skip leading spaces
-    while (isspace((unsigned char)*p))
-      p++;
-    if (*p == '\0')
-      break;
-
-    int exclude = 0;
-    if (*p == '-') {
-      exclude = 1;
-      p++;
-    }
-
-    // mark the start of this token
-    char *start = p;
-    // find its end
-    while (*p && !isspace((unsigned char)*p))
-      p++;
-
-    int len = p - start; // compute length
-    if (len > 0) {
-      // copy it into a new buffer
-      char *word = malloc(len + 1);
-      if (!word) {
-        free(input);
-        FreeQuery(query);
+    if (!str) 
         return NULL;
-      }
-      memcpy(word, start, len);
-      word[len] = '\0';
 
-      // ignore tokens that don’t start with alnum
-      if (isalnum((unsigned char)word[0])) {
-        QueryNode *node = malloc(sizeof(*node));
-        if (!node) {
-          free(word);
-          free(input);
-          FreeQuery(query);
-          return NULL;
-        }
-        node->keyword = word;
-        node->exclude = exclude;
-        node->next = query->head;
-        query->head = node;
-      } else {
-        free(word);
-      }
+    Query *query = malloc(sizeof(*query));
+    if (!query) 
+        return NULL;
+    query->head = query->tail = NULL;
+
+    // Make a modifiable copy of the input string
+    char *input = strdup(str);
+    if (!input) {
+        free(query);
+        return NULL;
     }
-    // loop around to skip the space and find the next token
-  }
 
-  free(input);
-  return query;
+    char *p = input;
+    while (*p) {
+        // 1) Skip any leading spaces
+        while (isspace((unsigned char)*p)) 
+            p++;
+        if (*p == '\0') 
+            break;
+
+        // 2) Detect exclusion flag
+        int exclude = 0;
+        if (*p == '-') {
+            exclude = 1;
+            p++;
+        }
+
+        // 3) Mark start of token, find its end
+        char *start = p;
+        while (*p && !isspace((unsigned char)*p)) 
+            p++;
+        int len = p - start;
+        if (len <= 0) 
+            continue;
+
+        // 4) Copy the token into its own buffer
+        char *word = malloc(len + 1);
+        if (!word) {
+            free(input);
+            FreeQuery(query);
+            return NULL;
+        }
+        memcpy(word, start, len);
+        word[len] = '\0';
+
+        // 5) Now drop any token that doesn't start alphanumeric
+        if (isalnum((unsigned char)word[0])) {
+            // 6) Build a new node
+            QueryNode *node = malloc(sizeof(*node));
+            if (!node) {
+                free(word);
+                free(input);
+                FreeQuery(query);
+                return NULL;
+            }
+            node->keyword = word;
+            node->exclude = exclude;
+            node->next    = NULL;
+
+            // 7) Append to the tail (preserves input order)
+            if (query->tail) {
+                query->tail->next = node;
+                query->tail       = node;
+            } else {
+                query->head = query->tail = node;
+            }
+        } else {
+            free(word);
+        }
+        // loop around to parse the next token
+    }
+
+    free(input);
+    return query;
 }
+
 
 // Free a query and all its keywords.
 void FreeQuery(Query *query) {
