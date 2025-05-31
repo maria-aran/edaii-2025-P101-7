@@ -8,7 +8,7 @@ Link *LinksInit() {
 
   Link *head = malloc(sizeof(Link));
 
-  if (!head){ //error detection
+  if (!head) { // error detection
     return NULL;
   }
 
@@ -29,7 +29,6 @@ void FreeLinks(Link *head) {
     current = current->next;
     free(temp);
   }
-
 }
 
 // Append a new link with given id to the end of the list
@@ -64,9 +63,9 @@ void PrintLinks(Link *head) {
   while (current) {
     printf("%d", current->id);
     if (current->next)
-      printf(", "); // if there is another link, print a comma 
+      printf(", "); // if there is another link, print a comma
     current = current->next;
   }
-  
+
   printf("\n");
 }
