@@ -21,10 +21,9 @@
 
 int main() {
 
-  printf("Oppenning....\n\n");
+  printf("Opening the document search system...\n\n");
 
-  printf("How big do you want the data set to be\n");
-  printf("Options: 12, 270, 540, 5400 (12 recommended): " );
+  printf("Choose dataset size (recommended: 12): 12, 270, 540, 5400\n> ");
 
   int datasetinput;
 
@@ -32,14 +31,23 @@ int main() {
 
   const char *dataset;  
 
-  if(datasetinput == 12){
-    dataset = "datasets/wikipedia12";
-
-  } else if( datasetinput == 270){
-    dataset = "datasets/wikipedia270";
-
-  }else if (datasetinput == 540){
-    dataset = "datasets/wikipedia540";
+  switch(datasetinput){
+    case 12:
+      dataset="datasets/wikipedia12";
+      break;
+    case 270:
+      dataset="datasets/wikipedia270";
+      break;
+    case 540:
+      dataset="datasets/wikipedia540";
+      break;
+    case 5400:
+      dataset="datasets/wikipedia5400";
+      break;
+    default:
+      printf("Invalid dataset size. Defaulting to size 12. \n");
+      dataset="dataset/wikipedia12";
+      break;
   }
 
   // Load all docs into the list
@@ -53,7 +61,6 @@ int main() {
    int _c;
    while ((_c = getchar()) != '\n' && _c != EOF);
  }
-
 
 
     // load reverse indexes
