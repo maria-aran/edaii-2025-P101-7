@@ -3,19 +3,7 @@
 ## C4 component diagram showing the data structures, files read/write and their relation.
 ### Volatile components in red, persistent component in blue
 
--Document.c (document.h)
--Dataset.c (dataset.h)
--Links.c (links.h)
--Graph.c (graph.h)
--Hashmap.c (hashmap.h)
--Query.c (query.h)
--main.c 
-
-
-
-
-
-
+![alt text](image.png)
 
 
 
