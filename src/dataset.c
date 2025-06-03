@@ -8,6 +8,7 @@
 
 // Load all documents from a folder into a list.
 Document *LoadDocumentsFromFolder(const char *folderPath) {
+  
   DIR *dir = opendir(folderPath);
   if (dir == NULL) {
     printf("Error: cannot open \"%s\"\n", folderPath);

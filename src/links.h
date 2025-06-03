@@ -5,7 +5,7 @@
 typedef struct Link {
   int id;            // Document ID this link points to
   struct Link *next; // Next link in the list
-} Link;
+} Link; 
 
 // Initialize an empty links list
 Link *LinksInit();
@@ -18,4 +18,4 @@ void PrintLinks(Link *head);
 
 void LinksAppend(Link *head, int id);
 
-#endif
+#endif  

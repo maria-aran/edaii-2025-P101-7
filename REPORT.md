@@ -1,8 +1,33 @@
 # Report: Building a search engine like Google
 
-> [!NOTE]  
-> Complete the report in this file before delivering the project.
-> The lab guide has a list of the questions you must answer.
+## C4 component diagram showing the data structures, files read/write and their relation.
+### Volatile components in red, persistent component in blue
+
+-Document.c (document.h)
+-Dataset.c (dataset.h)
+-Links.c (links.h)
+-Graph.c (graph.h)
+-Hashmap.c (hashmap.h)
+-Query.c (query.h)
+-main.c 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ### Runtime Complexity Analysis Report Table
