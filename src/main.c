@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TITLE_MAP_SIZE 100000
+#define TITLE_MAP_SIZE 1024
 #define MAX_LENGTH 500
 #define BODY_MAP_SIZE 200000
 #define MAX_QUERY_LEN 200
@@ -20,38 +20,37 @@
 
 int main() {
 
-  printf("Openning....\n\n");
+  // printf("Openning....\n\n");
 
-  printf("How big do you want the data set to be\n");
-  printf("Options: 12, 270, 540, 5400 (12 recommended): ");
+  // printf("How big do you want the data set to be\n");
+  // printf("Options: 12, 270, 540, 5400 (12 recommended): ");
 
-  int datasetinput;
+  // int datasetinput;
 
-  scanf("%d", &datasetinput);
+  // //scanf("%d", &datasetinput);
 
-  const char *dataset;
+  // const char *dataset;
 
-  if (datasetinput == 12) {
-    dataset = "datasets/wikipedia12";
+  // if (datasetinput == 12) {
+  //   dataset = "datasets/wikipedia12";
 
-  } else if (datasetinput == 270) {
-    dataset = "datasets/wikipedia270";
+  // } else if (datasetinput == 270) {
+  //   dataset = "datasets/wikipedia270";
 
-  } else if (datasetinput == 540) {
-    dataset = "datasets/wikipedia540";
-  }
+  // } else if (datasetinput == 540) {
+  //   dataset = "datasets/wikipedia540";
+  // }
 
   // Load all docs into the list
-  Document *docs = LoadDocumentsFromFolder(dataset);
+  Document *docs = LoadDocumentsFromFolder("datasets/wikipedia5400");
   if (!docs) { // er
     fprintf(stderr, "No documents loaded.\n");
     return EXIT_FAILURE;
   }
-  printf("Dataset with %d documents loaded\n\n", datasetinput);
+  //printf("Dataset with %d documents loaded\n\n", datasetinput);
   {
     int _c;
-    while ((_c = getchar()) != '\n' && _c != EOF)
-      ;
+    while ((_c = getchar()) != '\n' && _c != EOF);
   }
 
   // load reverse indexes
@@ -68,6 +67,7 @@ int main() {
     // Build reverse indexes from scratch by scanning all documents:
     // - titleIdx: for fast title-only lookups
     // - bodyIdx:  for full‐text lookups
+  
     build_reverse_indexes(titleIdx, bodyIdx, docs);
 
     // Save the newly built indexes for faster startup next time
@@ -95,8 +95,7 @@ int main() {
 
   // Loading (or computing) Page scores!
   int pr_count;
-  double *pageRanks = load_relevance_scores(
-      "pageranks", &pr_count); // pageranks should be replaced by actual docs
+  double *pageRanks = load_relevance_scores("pageranks", &pr_count); // pageranks should be replaced by actual docs
 
   // If loading failed or the saved count doesn’t match current docs, compute
   if (!pageRanks || pr_count != numDocs) {

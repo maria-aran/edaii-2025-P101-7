@@ -1,7 +1,7 @@
 # Report: Building a search engine like Google
 
 ## C4 component diagram showing the data structures, files read/write and their relation.
-### Volatile components in red, persistent component in blue
+### Volatile components in blue, persistent component in pink
 
 ![alt text](image.png)
 
@@ -34,6 +34,16 @@
 x
 
 ### Initialization time for different hashmap slot count settings 
-x
+To compute the time a simple technique was used. First we compute the load factor
+a = distinct tokens / S (buckets) . And, each lookup walks a node on average, and there are two lookups, one for the body and one for the title. After some research I found out that a pointer-hop takes about 15 ns. And finally we have to add 3us for merging lists and doing insertion-sort on a few dozen hits. Now we will need to repeat the process for all datasets (12, 270, 540 and 5400), and different buckets sizes, in my case, I choose 1024, 4096, 16384 and 6536. It is also important to explain that an estimation of 225 tokens per document (200 in body + 25 in title) was done in order to produce the calculations. So:
+dataset12 → 3 000 tokens, dataset270 → 60 000 tokens, dataset540 → 120 000 tokens and dataset5400 → 600 000 tokens
+![alt text](image-1.png)
+![alt text](image-2.png)
+Finally, to conclude, as we can see clearly on the graph, a smaller slot count makes a higher load factor, which causes slower searches. For instance, at S=1024, the bucket array is too small in comparison to the number of distinct tokens, so each lookup must traverse long collision chains. We can also see that doubling the bucket size halves the lookup time. From S=1024 to S=4096, dataset270’s total time drops from 4.758 ms → 3.440 ms, and dataset5400’s from 20.578 ms → 7.395 ms. Larger datasets require larger S to reach the “flat” region. For instance, dataset12 flattens by S=4096, because 4096≫3000 tokens. While dataset 5400 still drops significantly from S=4096→ S=16384 → S=65536S (7.395 → 4.099 → 3.274 ms) because it has 600 000 tokens, so needs S≫600 000 to reach minimal hash cost. Also, once hash cost is negligible, total time approaches a constant, in our case, 3 ms (time for merging lists and doing insertion-sort on a few dozen hits). Finally, we can take as a learned lesson that to minimize search time, pick a bucket count roughly equal to (or a bit larger than) the number of distinct tokens .
 
-### Improvement of the reverse index to improve search and initialization speed.Do we think it would it require same, less or more memory overall?. What would the runtime be? Would it take same, less or more time to run?
+### Improvement of the reverse index to improve search and initialization speed. Do we think it would it require same, less or more memory overall?. What would the runtime be? Would it take same, less or more time to run?
+An improvement could be replacing the current chained‐list hash table with an open-addressing array, this way there wouldn’t be next pointers. Furthermore, store each term’s posting list in a dynamic int[] array instead of a linked DocLinked list.
+
+This would improve the speed. Starting with initialization, we can see that it used to do the following for each token: it made a malloc for a HashNode and a DocLinked node and inserted it by following pointers. Now, it computes the hash, probes a fixed‐size bucket array, then appends the docID to a contiguous int[]. No malloc for every token. The complexity is still big-O, but the improvement is seen when constants drop sharply because it avoids thousands of small allocations and pointer chasing. 
+
+Now, let’s look at the search time complexity. Then, it used to walk a linked list for each keyword, then merge two linked lists, O(m×n), and sort hits O(k^2). If this change was made, each lookup would probe a few array slots. Merging two posting arrays takes O(m+n) by a simple two-pointer scan, and sorting hits is O(klog⁡k), where k is the number of hits. The memory use would also change. Before the change, each HashNode had a next pointer, and each posting used a DocLinked node. If the improvement is applied, you drop all linked-list overhead (no next pointers, no DocLinked nodes). Even though buckets are a bit bigger, posting arrays use only 4 B per entry instead of 12 B. Overall, it uses less memory.
