@@ -14,13 +14,13 @@
 | Parsing a query into the struct `CreateQuery(const char *str)`  | O(n) | The string is scanned once (`while(*p)`) character by character. For each word, memory is allocated and copied based on token length. All allocations and operations are linear in total size  |
 | Counting the neighbours in the graph  (graph_get_indegree)   | right baz     | right baz     |
 |Counting the neighbours of a document in the graph (graph_get_indegree, same function, but applied specifically to a document by ID)    | O(n), where n is the number of nodes in the linked list     | The `while` loop runs once per node in the list, thus, n iterations. There is also no nested loops or recursion, so that is the final complexity |
-| Finding the documents that contain a keyword in the reverse-index      | right baz     | right baz     |
+| Finding the documents that contain a keyword in the reverse-index `DocLinked *get_list(HashMap *m, const char *key)`     | O(k), where k is length of input word that is being normalized     | get_list first normalizes and hashes the input word in linear time to its length O(k). Normalization is O(k) because it processes each of the k charcters in the input word exactly one, checking if its alphanumeric, converting it into lowercase, and copying it. Then, searches a linked list of possible matching keys in the hash bucket. Making the total time complexity O(k)     |
 | Finding the documents that match all keywords in the query `LinearSearchDocuments(Document *docs, Query *query) ` | O(n⋅m⋅k⋅L) | The function checks each of the n number of documents against m query nodes, each node can be a simple keyword with up to k terms. Each term is matched against the document's title and body, costing O(L) per match, (match term function), where L is the length of the text being searched  |
 | Sorting the documents according to the relevance score (sort_documents_by_relevance) | O(n^2)    | For each document in the list, it finds the correct place in the sorted portion where the document should go (based on the revelance score), and then, inserts the document.Each insertion takes up to O(n) time, and we do this for O(n) documents, thus, the total time complexity is O(n) - *(insertions)* times O(n) - *(scans)* = O    |
 
 
 ### Search time with/without the reverse index for the different-sized datasets
-x
+The plot compares search time for datasets of increasing size. With the reverse index, search time remains nearly flat, with O(K+R), with K being the number of keywords in the query, and R the documents that match the query (results).regardless of the dataset size. In contrast, without the index, the search time increases linearly due to O(N x L), where N is the number of documents in the dataset and L the average number of words per document (title+body) .complexity, becoming significantly slower as the number of documents grows.
 
 ### Initialization time for different hashmap slot count settings 
 To compute the time a simple technique was used. First we compute the load factor
