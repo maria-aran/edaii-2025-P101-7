@@ -28,6 +28,12 @@
 
 With my reverse‐index in place, query time remains essentially constant (~0.003 ms) as the dataset grows, because each lookup is O(1) and the only remaining cost is merging and sorting the small hit list (O(K + R)). In contrast, when I scan every document’s words directly, search time increases linearly (≈ 150 ms → 72 000 ms) with N, reflecting the O(N·L) work of examining every word in every document.
 
+### Search time for different hashmap slot count settings 
+![alt text](<output (4).png>)
+As expected, larger datasets take longer to search, but each line still decreases as slot count increases, because more slots lead to less collisions.
+Also, the lines converge at higher slot counts, demonstrating that simply adding more slots yields progressively smaller improvements.
+
+
 ### Initialization time for different hashmap slot count settings 
 To compute the time a simple technique was used. First we compute the load factor
 a = distinct tokens / S (buckets) . And, each lookup walks a node on average, and there are two lookups, one for the body and one for the title. After some research I found out that a pointer-hop takes about 15 ns. And finally we have to add 3us for merging lists and doing insertion-sort on a few dozen hits. Now we will need to repeat the process for all datasets (12, 270, 540 and 5400), and different buckets sizes, in my case, I choose 1024, 4096, 16384 and 6536. It is also important to explain that an estimation of 225 tokens per document (200 in body + 25 in title) was done in order to produce the calculations. So:
