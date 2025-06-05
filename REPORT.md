@@ -2,8 +2,9 @@
 
 ## C4 component diagram showing the data structures, files read/write and their relation.
 ### Volatile components in blue, persistent component in pink
+![Captura de pantalla 2025-06-03 154907](https://github.com/user-attachments/assets/f1d91a1d-4f3d-48d7-a168-b76c49a0fe88)
 
-![alt text](<Captura de pantalla 2025-06-03 154907.png>)
+
 
 ### Runtime Complexity Analysis Report Table
 #### Now, we will present the runtime complexity analysis for various operations in our and search system.
@@ -20,15 +21,17 @@
 
 ### Search time with/without the reverse index for the different-sized datasets
 ### Search time with the reverse index for the different-sized datasets
-![alt text](<Captura de pantalla 2025-06-04 160025.png>)
+![Captura de pantalla 2025-06-04 160025](https://github.com/user-attachments/assets/8f1b70ae-2c3e-4659-b27f-c5687c505271)
 
 ### Search time without the reverse index for the different-sized datasets
-![alt text](<Captura de pantalla 2025-06-04 160243.png>)
+![Captura de pantalla 2025-06-04 160243](https://github.com/user-attachments/assets/72c3b761-e99d-4be2-9b1b-cd3002f99fe7)
+
 
 With my reverse‐index in place, query time remains essentially constant (~0.003 ms) as the dataset grows, because each lookup is O(1) and the only remaining cost is merging and sorting the small hit list (O(K + R)). In contrast, when I scan every document’s words directly, search time increases linearly (≈ 150 ms → 72 000 ms) with N, reflecting the O(N·L) work of examining every word in every document.
 
 ### Search time for different hashmap slot count settings 
-![alt text](<output (4).png>)
+![output (4)](https://github.com/user-attachments/assets/1f7e6f19-94ea-43c4-8e2b-9ea255f8bfc7)
+
 As expected, larger datasets take longer to search, but each line still decreases as slot count increases, because more slots lead to less collisions.
 Also, the lines converge at higher slot counts, demonstrating that simply adding more slots yields progressively smaller improvements.
 
@@ -37,8 +40,9 @@ Also, the lines converge at higher slot counts, demonstrating that simply adding
 To compute the time a simple technique was used. First we compute the load factor
 a = distinct tokens / S (buckets) . And, each lookup walks a node on average, and there are two lookups, one for the body and one for the title. After some research I found out that a pointer-hop takes about 15 ns. And finally we have to add 3us for merging lists and doing insertion-sort on a few dozen hits. Now we will need to repeat the process for all datasets (12, 270, 540 and 5400), and different buckets sizes, in my case, I choose 1024, 4096, 16384 and 6536. It is also important to explain that an estimation of 225 tokens per document (200 in body + 25 in title) was done in order to produce the calculations. So:
 dataset12 → 3 000 tokens, dataset270 → 60 000 tokens, dataset540 → 120 000 tokens and dataset5400 → 600 000 tokens
-![alt text](<Captura de pantalla 2025-06-03 200506.png>)
-![alt text](<Captura de pantalla 2025-06-03 200616.png>)
+![Captura de pantalla 2025-06-03 200506](https://github.com/user-attachments/assets/62d0735e-45fc-4216-996b-f5f056441457)
+![Captura de pantalla 2025-06-03 200616](https://github.com/user-attachments/assets/38bac5a3-95a3-46be-8235-90ae2258d410)
+
 Finally, to conclude, as we can see clearly on the graph, a smaller slot count makes a higher load factor, which causes slower searches. For instance, at S=1024, the bucket array is too small in comparison to the number of distinct tokens, so each lookup must traverse long collision chains. We can also see that doubling the bucket size halves the lookup time. From S=1024 to S=4096, dataset270’s total time drops from 4.758 ms → 3.440 ms, and dataset5400’s from 20.578 ms → 7.395 ms. Larger datasets require larger S to reach the “flat” region. For instance, dataset12 flattens by S=4096, because 4096≫3000 tokens. While dataset 5400 still drops significantly from S=4096→ S=16384 → S=65536S (7.395 → 4.099 → 3.274 ms) because it has 600 000 tokens, so needs S≫600 000 to reach minimal hash cost. Also, once hash cost is negligible, total time approaches a constant, in our case, 3 ms (time for merging lists and doing insertion-sort on a few dozen hits). Finally, we can take as a learned lesson that to minimize search time, pick a bucket count roughly equal to (or a bit larger than) the number of distinct tokens .
 
 ### Improvement of the reverse index to improve search and initialization speed. Do we think it would it require same, less or more memory overall?. What would the runtime be? Would it take same, less or more time to run?
